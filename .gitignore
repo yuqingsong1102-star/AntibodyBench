@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual env / conda
+.venv/
+venv/
+env/
+
+# Local caches
+.cache/
+*.log
+
+# Benchmark outputs (large/generated)
+outputs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
