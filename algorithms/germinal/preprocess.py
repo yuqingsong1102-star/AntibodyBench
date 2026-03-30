@@ -33,23 +33,52 @@ class PreProcess:
     with self.dataset_csv.open("r", encoding="utf-8", newline="") as f:
       rows = list(csv.DictReader(f))
 
+    manifest_records: list[dict[str, Any]] = []
+    skip_reasons: dict[str, int] = {}
+    ready_count = 0
+
     for row in rows:
       sample_id = str(row.get("sample_id", "")).strip()
       pdb_id = str(row.get("pdb_id", "")).strip().lower()
-      if not sample_id or not pdb_id:
+      ref_path_raw = str(row.get("reference_structure_path", "")).strip()
+      ref_path = Path(ref_path_raw) if ref_path_raw else None
+
+      skip_reason = ""
+      if not sample_id:
+        skip_reason = "missing_sample_id"
+      elif not pdb_id:
+        skip_reason = "missing_pdb_id"
+      elif not ref_path_raw:
+        skip_reason = "missing_reference_structure_path"
+      elif ref_path is not None and not ref_path.exists():
+        skip_reason = "reference_structure_not_found"
+
+      if skip_reason:
+        skip_reasons[skip_reason] = skip_reasons.get(skip_reason, 0) + 1
+        manifest_records.append(
+          {
+            "sample_id": sample_id,
+            "pdb_id": pdb_id,
+            "input_json": "",
+            "status": "skip",
+            "reason": skip_reason,
+          }
+        )
         continue
+
       af3 = af3_map.get(sample_id, {})
+      input_json_path = self.out_dir / f"{sample_id}.json"
       payload = {
         "sample_id": sample_id,
         "pdb_id": pdb_id,
-        "reference_structure_path": str(row.get("reference_structure_path", "")).strip(),
+        "reference_structure_path": ref_path_raw,
         "antibody_chain": str(row.get("antibody_chain", "")).strip(),
         "antigen_chain": str(row.get("antigen_chain", "")).strip(),
         "cdr": af3.get("cdr", {}),
         "heavy_sequence": af3.get("heavy_sequence", ""),
         "light_sequence": af3.get("light_sequence", ""),
       }
-      (self.out_dir / f"{sample_id}.json").write_text(
+      input_json_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
       )
@@ -57,7 +86,28 @@ class PreProcess:
         ">query\n" + (payload["heavy_sequence"] or "") + "\n",
         encoding="utf-8",
       )
+      ready_count += 1
+      manifest_records.append(
+        {
+          "sample_id": sample_id,
+          "pdb_id": pdb_id,
+          "input_json": str(input_json_path.resolve()),
+          "status": "ready",
+          "reason": "",
+        }
+      )
+
+    manifest = {
+      "total_samples": len(rows),
+      "ready_samples": ready_count,
+      "skipped_samples": len(rows) - ready_count,
+      "skip_reasons": skip_reasons,
+      "records": manifest_records,
+    }
+    manifest_path = self.out_dir / "_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[OK] germinal preprocess 输出: {self.out_dir}")
+    print(f"[INFO] germinal manifest: {manifest_path}")
 
 
 def main() -> int:

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from pathlib import Path
+from typing import Any
 
 
 class PostProcess:
@@ -12,13 +14,34 @@ class PostProcess:
     self.prediction_dir = prediction_dir
     self.out_dir = out_dir
 
-  def _extract_cdr_region(self, src_struct: Path, out_struct: Path) -> None:
-    out_struct.write_text(src_struct.read_text(encoding="utf-8"), encoding="utf-8")
+  def _parse_optional_int(self, row: dict[str, str], key: str) -> int | None:
+    v = (row.get(key) or "").strip()
+    if not v:
+      return None
+    try:
+      return int(v)
+    except ValueError:
+      return None
+
+  def _default_ref_path(self, pdb_id_raw: str) -> Path | None:
+    # 支持 raw dataset 里 pdb_id 可能是 "8tuz-assembly1" 这种格式
+    pdb_base = (pdb_id_raw or "").split("-")[0].strip()
+    if not pdb_base:
+      return None
+    root_dir = Path(__file__).resolve().parents[2]
+    cand = root_dir / "data" / "raw" / "raw_pdbs" / f"{pdb_base}.pdb"
+    return cand if cand.exists() else None
 
   def postprocess(self) -> None:
     self.out_dir.mkdir(parents=True, exist_ok=True)
     cdr_dir = self.out_dir / "cdr_regions"
     cdr_dir.mkdir(parents=True, exist_ok=True)
+
+    # Make AntibodyBench importable when running as `python algorithms/.../postprocess.py`
+    root_dir = Path(__file__).resolve().parents[2]
+    if str(root_dir) not in sys.path:
+      sys.path.insert(0, str(root_dir))
+    from evaluation_tools.cdr_rmsd import compute_antigen_aligned_cdr_rmsd, extract_cdr_backbone_pdb
 
     with self.dataset_csv.open("r", encoding="utf-8", newline="") as f:
       dataset_rows = list(csv.DictReader(f))
@@ -28,6 +51,7 @@ class PostProcess:
       sample_id = str(row.get("sample_id", "")).strip()
       if not sample_id:
         continue
+
       pred_path = None
       for ext in ("pdb", "cif"):
         cand = self.prediction_dir / f"{sample_id}.{ext}"
@@ -37,20 +61,81 @@ class PostProcess:
       if pred_path is None:
         continue
 
-      cdr_h3 = cdr_dir / f"{sample_id}_cdr_h3.{pred_path.suffix.lstrip('.')}"
-      cdr_l3 = cdr_dir / f"{sample_id}_cdr_l3.{pred_path.suffix.lstrip('.')}"
-      self._extract_cdr_region(pred_path, cdr_h3)
-      self._extract_cdr_region(pred_path, cdr_l3)
+      pdb_id = str(row.get("pdb_id", "")).strip()
+      ref_path_raw = str(row.get("reference_structure_path", "")).strip()
+      ref_path = Path(ref_path_raw) if ref_path_raw else self._default_ref_path(pdb_id)
+      if ref_path is None or not ref_path.exists():
+        continue
+
+      antigen_chain = (row.get("antigen_chain") or "").strip() or "A"
+      heavy_chain = (row.get("antibody_heavy_chain") or row.get("antibody_chain") or "").strip() or ""
+      light_chain = (row.get("antibody_light_chain") or row.get("antibody_chain") or "").strip() or ""
+
+      h3_start = self._parse_optional_int(row, "cdr_h3_start")
+      h3_end = self._parse_optional_int(row, "cdr_h3_end")
+      l3_start = self._parse_optional_int(row, "cdr_l3_start")
+      l3_end = self._parse_optional_int(row, "cdr_l3_end")
+
+      cdr_h3_rmsd: str = ""
+      cdr_l3_rmsd: str = ""
+
+      if h3_start is not None and h3_end is not None and heavy_chain:
+        res = compute_antigen_aligned_cdr_rmsd(
+          pred_path,
+          ref_path,
+          antigen_chain_id=antigen_chain,
+          antibody_chain_id=heavy_chain,
+          cdr_start=h3_start,
+          cdr_end=h3_end,
+        )
+        if res is not None:
+          cdr_h3_rmsd = f"{res.rmsd:.6f}"
+        # 导出 CDR，便于你用 PyMOL 人工检查
+        try:
+          extract_cdr_backbone_pdb(
+            pred_path,
+            cdr_dir / f"{sample_id}_cdr_h3.pdb",
+            chain_id=heavy_chain,
+            start=h3_start,
+            end=h3_end,
+          )
+        except Exception:
+          pass
+
+      if l3_start is not None and l3_end is not None and light_chain:
+        res = compute_antigen_aligned_cdr_rmsd(
+          pred_path,
+          ref_path,
+          antigen_chain_id=antigen_chain,
+          antibody_chain_id=light_chain,
+          cdr_start=l3_start,
+          cdr_end=l3_end,
+        )
+        if res is not None:
+          cdr_l3_rmsd = f"{res.rmsd:.6f}"
+        try:
+          extract_cdr_backbone_pdb(
+            pred_path,
+            cdr_dir / f"{sample_id}_cdr_l3.pdb",
+            chain_id=light_chain,
+            start=l3_start,
+            end=l3_end,
+          )
+        except Exception:
+          pass
+
+      # 目前只实现 CDR RMSD，其它指标保持空字符串（aggregate 会自动跳过）
+      prediction_path = str(pred_path.resolve())
 
       rows.append(
         {
-          "pdb_id": row.get("pdb_id", ""),
+          "pdb_id": pdb_id,
           "seed": 0,
           "sample": sample_id,
           "ranking_score": "",
-          "prediction_path": str(pred_path.resolve()),
-          "cdr_h3_rmsd": "",
-          "cdr_l3_rmsd": "",
+          "prediction_path": prediction_path,
+          "cdr_h3_rmsd": cdr_h3_rmsd,
+          "cdr_l3_rmsd": cdr_l3_rmsd,
           "rmsd": "",
           "tm_score": "",
           "dockq": "",

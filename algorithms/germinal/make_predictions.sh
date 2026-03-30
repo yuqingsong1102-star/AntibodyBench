@@ -42,6 +42,7 @@ MAX_SAMPLES="${GERMINAL_MAX_SAMPLES:-0}"
 USE_CONDA_RUN="${GERMINAL_USE_CONDA_RUN:-1}"
 CONDA_ENV="${GERMINAL_CONDA_ENV:-germinal}"
 HAS_CONDA=0
+SKIP_TORCH_CHECK="${GERMINAL_SKIP_TORCH_CHECK:-0}"
 
 if [[ "${USE_CONDA_RUN}" == "1" ]]; then
   if command -v conda >/dev/null 2>&1; then
@@ -60,6 +61,20 @@ run_model_cmd() {
     (cd "${MODEL_WORKDIR}" && bash -lc "${cmd}")
   fi
 }
+
+check_torch_version() {
+  run_model_cmd "python -c \"import re,sys,torch; m=re.match(r'(\\d+\\.\\d+\\.\\d+)', torch.__version__); v=tuple(map(int, m.group(1).split('.'))) if m else (0,0,0); sys.exit(0 if v >= (2,6,0) else 3)\""
+}
+
+if [[ "${SKIP_TORCH_CHECK}" != "1" ]]; then
+  if ! check_torch_version >/dev/null 2>&1; then
+    echo "[ERROR] germinal 环境的 torch 版本低于 2.6，当前 transformers 将拒绝 torch.load。"
+    echo "[ERROR] 请先升级（示例命令）:"
+    echo "  /home/yqsong/.conda/envs/${CONDA_ENV}/bin/python -m pip install --upgrade 'torch>=2.6,<2.7' --index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://pypi.org/simple"
+    echo "[ERROR] 如需临时跳过检测，可设置 GERMINAL_SKIP_TORCH_CHECK=1"
+    exit 1
+  fi
+fi
 
 if [[ "${DRY_RUN}" != "1" && -z "${CMD_TEMPLATE}" ]]; then
   if run_model_cmd "python -c 'import pyrosetta'" >/dev/null 2>&1; then
