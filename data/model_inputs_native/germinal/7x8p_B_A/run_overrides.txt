@@ -1,0 +1,4 @@
+target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7x8p.pdb'
+target.target_chain='A'
+target.binder_chain='B'
+target.target_hotspots='A__FILL_ME__'

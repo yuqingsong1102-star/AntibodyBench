@@ -1,0 +1,5 @@
+target_name: "8udz_D_A"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8udz.pdb"
+target_chain: "A"
+binder_chain: "D"
+target_hotspots: "A__FILL_ME__"

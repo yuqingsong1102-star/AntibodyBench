@@ -1,0 +1,12 @@
+{
+  "design_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/model_inputs_native/BindCraft/8pn0_B_E/designs",
+  "binder_name": "8pn0_B_E",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8pn0.pdb",
+  "chains": "E",
+  "target_hotspot_residues": null,
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

@@ -1,0 +1,12 @@
+{
+  "design_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/model_inputs_native/BindCraft/7st5_B_F/designs",
+  "binder_name": "7st5_B_F",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7st5.pdb",
+  "chains": "F",
+  "target_hotspot_residues": null,
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

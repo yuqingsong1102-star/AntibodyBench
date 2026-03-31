@@ -1,0 +1,12 @@
+{
+  "design_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/model_inputs_native/BindCraft/8fym_A_C/designs",
+  "binder_name": "8fym_A_C",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8fym.pdb",
+  "chains": "C",
+  "target_hotspot_residues": null,
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

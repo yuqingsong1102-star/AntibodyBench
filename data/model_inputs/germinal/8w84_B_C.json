@@ -1,0 +1,10 @@
+{
+  "sample_id": "8w84_B_C",
+  "pdb_id": "8w84",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8w84.pdb",
+  "antibody_chain": "B",
+  "antigen_chain": "C",
+  "cdr": {},
+  "heavy_sequence": "",
+  "light_sequence": ""
+}
