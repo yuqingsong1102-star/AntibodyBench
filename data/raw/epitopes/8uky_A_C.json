@@ -1,0 +1,14 @@
+{
+  "sample_id": "8uky_A_C",
+  "pdb_id": "8uky",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8uky.pdb",
+  "antigen_chain": "C",
+  "antibody_chain_requested": "A",
+  "antibody_chain_used": "A",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 0,
+  "hotspot_residues": [],
+  "hotspot_string": ""
+}

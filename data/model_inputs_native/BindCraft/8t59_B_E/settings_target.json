@@ -3,7 +3,7 @@
   "binder_name": "8t59_B_E",
   "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8t59.pdb",
   "chains": "E",
-  "target_hotspot_residues": null,
+  "target_hotspot_residues": "E150,E151,E152,E153,E154,E155,E156",
   "lengths": [
     20,
     35

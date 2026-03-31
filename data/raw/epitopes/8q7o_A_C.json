@@ -1,0 +1,29 @@
+{
+  "sample_id": "8q7o_A_C",
+  "pdb_id": "8q7o",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8q7o.pdb",
+  "antigen_chain": "C",
+  "antibody_chain_requested": "A",
+  "antibody_chain_used": "A",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 14,
+  "hotspot_residues": [
+    "C67",
+    "C70",
+    "C71",
+    "C72",
+    "C73",
+    "C74",
+    "C75",
+    "C109",
+    "C112",
+    "C113",
+    "C115",
+    "C116",
+    "C117",
+    "C118"
+  ],
+  "hotspot_string": "C67,C70,C71,C72,C73,C74,C75,C109,C112,C113,C115,C116,C117,C118"
+}

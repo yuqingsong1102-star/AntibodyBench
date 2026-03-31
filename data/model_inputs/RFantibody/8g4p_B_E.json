@@ -1,7 +1,0 @@
-{
-  "sample_id": "8g4p_B_E",
-  "pdb_id": "8g4p",
-  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8g4p.pdb",
-  "antibody_chain": "B",
-  "antigen_chain": "E"
-}

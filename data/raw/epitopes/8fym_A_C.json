@@ -1,0 +1,17 @@
+{
+  "sample_id": "8fym_A_C",
+  "pdb_id": "8fym",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8fym.pdb",
+  "antigen_chain": "C",
+  "antibody_chain_requested": "A",
+  "antibody_chain_used": "A",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 2,
+  "hotspot_residues": [
+    "C673",
+    "C674"
+  ],
+  "hotspot_string": "C673,C674"
+}

@@ -1,0 +1,14 @@
+{
+  "sample_id": "8che_B_E",
+  "pdb_id": "8che",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8che.pdb",
+  "antigen_chain": "E",
+  "antibody_chain_requested": "B",
+  "antibody_chain_used": "",
+  "cutoff_angstrom": 5.0,
+  "status": "fail",
+  "note": "antigen_chain_not_found:need=E;available=H,L,A,B,C,D",
+  "hotspot_count": 0,
+  "hotspot_residues": [],
+  "hotspot_string": ""
+}

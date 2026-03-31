@@ -10,3 +10,5 @@ entities:
         - "/home/yqsong/projects/antibody_benchmark/models/boltzgen/example/nanobody_scaffolds/7xl0.yaml"
 
 # Optional: add hotspot-focused constraints / include-exclude masks per boltzgen examples.
+
+# target_hotspots_from_epitopes: "A36,A40,A49,A52,A53,A55,A58,A59,A60,A61,A62,A63,A64,A66,A67,A83"

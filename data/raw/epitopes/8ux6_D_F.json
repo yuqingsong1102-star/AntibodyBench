@@ -1,0 +1,24 @@
+{
+  "sample_id": "8ux6_D_F",
+  "pdb_id": "8ux6",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8ux6.pdb",
+  "antigen_chain": "F",
+  "antibody_chain_requested": "D",
+  "antibody_chain_used": "D",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 9,
+  "hotspot_residues": [
+    "F0",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F9",
+    "F12",
+    "F13",
+    "F16"
+  ],
+  "hotspot_string": "F0,F1,F2,F3,F4,F9,F12,F13,F16"
+}

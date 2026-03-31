@@ -1,0 +1,33 @@
+{
+  "sample_id": "7st5_B_F",
+  "pdb_id": "7st5",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/7st5.pdb",
+  "antigen_chain": "F",
+  "antibody_chain_requested": "B",
+  "antibody_chain_used": "h",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "fallback_antibody_chain:B->h",
+  "hotspot_count": 18,
+  "hotspot_residues": [
+    "F31",
+    "F32",
+    "F33",
+    "F34",
+    "F35",
+    "F52",
+    "F53",
+    "F66",
+    "F67",
+    "F68",
+    "F69",
+    "F95",
+    "F96",
+    "F97",
+    "F98",
+    "F101",
+    "F102",
+    "F104"
+  ],
+  "hotspot_string": "F31,F32,F33,F34,F35,F52,F53,F66,F67,F68,F69,F95,F96,F97,F98,F101,F102,F104"
+}

@@ -1,0 +1,14 @@
+{
+  "sample_id": "8g4p_B_E",
+  "pdb_id": "8g4p",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8g4p.pdb",
+  "antigen_chain": "E",
+  "antibody_chain_requested": "B",
+  "antibody_chain_used": "B",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 0,
+  "hotspot_residues": [],
+  "hotspot_string": ""
+}

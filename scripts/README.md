@@ -16,6 +16,8 @@ Use categorized entry points below to reduce confusion:
 - `scripts/data_prep/fill_cdr_h3_from_anarci.py`
 - `scripts/data_prep/build_model_inputs.py`
 - `scripts/data_prep/build_model_inputs_native.py` (templates aligned with original `models/*` entry formats)
+- `scripts/data_prep/extract_epitopes_from_complexes.py`
+- `scripts/data_prep/apply_epitopes_to_native_inputs.py`
 
 ## Ops
 

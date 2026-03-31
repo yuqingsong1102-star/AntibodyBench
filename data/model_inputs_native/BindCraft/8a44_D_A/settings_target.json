@@ -3,7 +3,7 @@
   "binder_name": "8a44_D_A",
   "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8a44.pdb",
   "chains": "A",
-  "target_hotspot_residues": null,
+  "target_hotspot_residues": "A258,A259,A260,A261,A339,A340",
   "lengths": [
     20,
     35
