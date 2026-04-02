@@ -217,3 +217,21 @@ bash scripts/run.sh --model boltzgen --sample-id 8q3j_B_A
 - `scripts/prepare_antibody_dataset.py`
 - `scripts/visualize_metrics.py`
 
+## Evaluation (Track B)
+
+评估分析主入口已迁移到 `evaluation/` 目录，建议使用一键命令：
+
+```bash
+python evaluation/aggregate/run_eval_pipeline.py
+```
+
+默认产物：
+
+- `outputs/evaluation/all_models/evaluation_long.csv`
+- `outputs/evaluation/all_models/summary_by_model.csv`
+- `outputs/evaluation/all_models/summary_by_sample.csv`
+- `outputs/evaluation/all_models/figures/*`
+- `outputs/evaluation/all_models/report.md`
+
+详细说明见：`evaluation/README.md`
+

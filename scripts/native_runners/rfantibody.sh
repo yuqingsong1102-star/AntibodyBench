@@ -34,6 +34,13 @@ MODEL_WORKDIR="${RFANTIBODY_WORKDIR:-/home/yqsong/projects/antibody_benchmark/mo
 NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
+# Auto-select GPU with most free memory if CUDA_VISIBLE_DEVICES not set
+if [[ -z "${CUDA_VISIBLE_DEVICES:-}" ]] && command -v nvidia-smi >/dev/null 2>&1; then
+  BEST_GPU=$(nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits | sort -t',' -k2 -nr | head -1 | cut -d',' -f1 | tr -d ' ')
+  export CUDA_VISIBLE_DEVICES="${BEST_GPU}"
+  echo "[INFO] Auto-selected GPU ${BEST_GPU} (most free memory)"
+fi
+
 if [[ -z "${RFANTIBODY_CMD:-}" ]]; then
   echo "[ERROR] 未设置 RFANTIBODY_CMD。"
   echo "示例: export RFANTIBODY_CMD='python run_pipeline.py --input __TARGET_PDB__ --out __OUTPUT_DIR__ --sample __SAMPLE_ID__'"

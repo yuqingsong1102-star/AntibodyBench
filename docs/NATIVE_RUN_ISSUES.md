@@ -54,3 +54,27 @@ Output root: `outputs/native_predictions_real`
 
 - Current GPU nodes are heavily occupied by other workloads.
 - For stable validation, prefer running models one-by-one during lower GPU contention windows.
+
+---
+
+## 2026-04-02 Fixes Applied
+
+### 1) RFantibody
+- **Fix:** runner now auto-selects GPU with most free memory (`nvidia-smi` query) when `CUDA_VISIBLE_DEVICES` not set
+- **Fix:** reduced `rfantibody_config.env`: `NUM_DESIGNS=1`, `NUM_SEQS=1`, `NUM_RECYCLES=3` to lower VRAM footprint
+- **Remaining risk:** still needs a GPU with ≥4 GB free; all 8 GPUs currently under heavy load
+
+### 2) germinal
+- **Fix:** reinstalled `torch==2.6.0+cu124` with CUDA support (`torch.cuda.is_available() == True` confirmed)
+- **Fix:** patched `iglm/model/IgLM.py` — replaced `BertTokenizerFast` with `PreTrainedTokenizerFast` built from `tokenizers.models.WordLevel`, because `transformers 5.3.0` silently drops non-special tokens from simple vocab files
+- **Verified:** all 20 standard amino acids now correctly tokenized (A→5, R→19, ... V→22)
+- **Next risk:** GPU OOM in JAX step may still appear under GPU contention
+
+### 3) BindCraft
+- **Fix:** `settings_target.json` changed `number_of_final_designs: 10 → 1`
+- **Fix:** created sample-local `advanced_settings.json` with `max_trajectories: 20` (was `false`/unlimited) and `soft_iterations: 50` (was 75)
+- **Fix:** `bindcraft.sh` now checks for `${SAMPLE_INPUT_DIR}/advanced_settings.json` before falling back to global default
+
+### 4) boltzgen
+- **Fix:** `boltzgen.sh` default `BOLTZGEN_CONDA_ENV` changed from `boltzgen` to `bg` (matching actual env name)
+- **Fix:** runner now exports `CUDA_VISIBLE_DEVICES=0` by default to force single-GPU mode, avoiding distributed TCPStore failures

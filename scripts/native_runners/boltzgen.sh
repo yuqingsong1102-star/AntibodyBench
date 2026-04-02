@@ -28,8 +28,10 @@ if [[ ! -f "${SPEC_FILE}" ]]; then
 fi
 
 MODEL_WORKDIR="${BOLTZGEN_WORKDIR:-/home/yqsong/projects/antibody_benchmark/models/boltzgen}"
-CONDA_ENV="${BOLTZGEN_CONDA_ENV:-boltzgen}"
+CONDA_ENV="${BOLTZGEN_CONDA_ENV:-bg}"
 USE_CONDA_RUN="${BOLTZGEN_USE_CONDA_RUN:-1}"
+# Default to single GPU to avoid distributed communication failures
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 PROTOCOL="${BOLTZGEN_PROTOCOL:-protein-anything}"
 NUM_DESIGNS="${BOLTZGEN_NUM_DESIGNS:-2}"
 BUDGET="${BOLTZGEN_BUDGET:-1}"

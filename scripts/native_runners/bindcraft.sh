@@ -31,7 +31,12 @@ MODEL_WORKDIR="${BINDCRAFT_WORKDIR:-/home/yqsong/projects/antibody_benchmark/mod
 CONDA_ENV="${BINDCRAFT_CONDA_ENV:-BindCraft}"
 USE_CONDA_RUN="${BINDCRAFT_USE_CONDA_RUN:-1}"
 FILTERS_JSON="${BINDCRAFT_FILTERS:-${MODEL_WORKDIR}/settings_filters/default_filters.json}"
-ADVANCED_JSON="${BINDCRAFT_ADVANCED:-${MODEL_WORKDIR}/settings_advanced/default_4stage_multimer.json}"
+# Prefer sample-local advanced settings if present
+if [[ -f "${SAMPLE_INPUT_DIR}/advanced_settings.json" ]]; then
+  ADVANCED_JSON="${SAMPLE_INPUT_DIR}/advanced_settings.json"
+else
+  ADVANCED_JSON="${BINDCRAFT_ADVANCED:-${MODEL_WORKDIR}/settings_advanced/default_4stage_multimer.json}"
+fi
 NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
