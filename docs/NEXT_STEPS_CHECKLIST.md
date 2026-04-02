@@ -17,10 +17,11 @@ Only do 1-2 items per session.
 ## Day 2: Build Ready Subset + First Metrics
 
 - [ ] Create/update ready subset (`dataset_index_ready.csv`) from rows with `cdr_h3_status=ok`
-- [ ] Run a small sample dry check (prepare-only):
-  - [ ] `bash scripts/core/run.sh --model RFantibody --split-csv inputs/antibody_datasets/dataset_index_ready.csv --prepare-only`
-- [ ] Run postprocess for one model and verify metric output:
-  - [ ] `outputs/evaluation/<model>/prediction_reference.csv` has non-empty `cdr_h3_rmsd`
+- [ ] Run a small native smoke check (single sample):
+  - [ ] `bash scripts/run.sh --model RFantibody --sample-id <sample_id> --max-samples 1`
+- [ ] Verify unified output contract:
+  - [ ] `outputs/native_predictions/<model>/<sample_id>/top1_meta.json` exists
+  - [ ] `outputs/native_predictions/<model>/manifest.csv` has one new row
 
 ## Day 3: Multi-Model Consistency
 
@@ -29,17 +30,16 @@ Only do 1-2 items per session.
   - [ ] BoltzGen
   - [ ] BindCraft
 - [ ] Confirm each model has:
-  - [ ] prediction files in `outputs/prediction/<model>/`
-  - [ ] metrics in `outputs/evaluation/<model>/prediction_reference.csv`
+  - [ ] per-sample files in `outputs/native_predictions/<model>/<sample_id>/`
+  - [ ] rolling summary in `outputs/native_predictions/<model>/manifest.csv`
 
-## Day 4: Aggregation + Review
+## Day 4: Review + Failure Triage
 
-- [ ] Aggregate per-model metrics:
-  - [ ] `python scripts/core/aggregate_metrics.py --model RFantibody`
-  - [ ] (repeat for each model)
-- [ ] Review summary files:
-  - [ ] `outputs/evaluation/<model>/summary_metrics.csv`
-- [ ] Spot-check 3-5 samples in `outputs/evaluation/<model>/cdr_regions/`
+- [ ] Review model manifests and count failures:
+  - [ ] check `status` / `error_summary` columns in `outputs/native_predictions/<model>/manifest.csv`
+- [ ] Spot-check 3-5 failed samples:
+  - [ ] open `run_stdout.log` / `run_stderr.log`
+  - [ ] open `top1_meta.json` for selection rule and failure reason
 
 ## Troubleshooting Quick Notes
 

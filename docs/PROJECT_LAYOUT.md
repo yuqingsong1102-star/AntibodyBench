@@ -14,16 +14,18 @@ This document is a practical map for daily work.
 
 ## Recommended Daily Entry Points
 
-Use these categorized wrappers first:
+Use these entry points first:
 
-- `scripts/core/run.sh`
-- `scripts/core/aggregate_metrics.py`
+- `scripts/run.sh`
 - `scripts/data_prep/generate_dataset_index.py`
 - `scripts/data_prep/fetch_reference_complexes.py`
 - `scripts/data_prep/fill_cdr_h3_from_anarci.py`
 - `scripts/ops/build_apptainer_images.sh`
 
-They delegate to the original scripts, so old commands still work.
+Notes:
+
+- `scripts/data_prep/*` is the canonical data-prep entry namespace.
+- Data-prep commands should always use `scripts/data_prep/*` paths.
 
 See:
 

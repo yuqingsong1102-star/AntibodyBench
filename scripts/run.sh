@@ -1,31 +1,70 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MODEL_NAME="template_model"
-DATA_SPLIT_CSV="${ROOT_DIR}/inputs/antibody_datasets/dataset_index.csv"
-PREPARE_ONLY=0
+
+MODEL_NAME=""
+INPUT_ROOT="${ROOT_DIR}/data/model_inputs_native"
+OUT_ROOT="${ROOT_DIR}/outputs/native_predictions"
+MAX_SAMPLES=1
+SAMPLE_ID=""
+CONTINUE_ON_ERROR=1
 
 usage() {
   cat <<'EOF'
 用法:
-  bash scripts/run.sh --model <model_name> [--split-csv <path>] [--prepare-only]
+  bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [选项]
+
+选项:
+  --model <name>            必填，模型名（大小写按目录名）
+  --input-root <path>       原生输入根目录（默认: data/model_inputs_native）
+  --out-root <path>         输出根目录（默认: outputs/native_predictions）
+  --max-samples <N>         最多处理样本数（默认: 1，0 表示不限制）
+  --sample-id <id>          仅运行指定样本（会忽略 --max-samples）
+  --continue-on-error <0|1> 单样本失败是否继续（默认: 1）
+  -h, --help                显示帮助
 EOF
+}
+
+normalize_model() {
+  local raw="$1"
+  case "${raw}" in
+    RFantibody|rfantibody|RFANTIBODY) echo "RFantibody" ;;
+    germinal|GERMINAL) echo "germinal" ;;
+    BindCraft|bindcraft|BINDCRAFT) echo "BindCraft" ;;
+    boltzgen|BOLTZGEN|BoltzGen) echo "boltzgen" ;;
+    *) return 1 ;;
+  esac
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --model)
-      MODEL_NAME="$2"
+      MODEL_NAME="$(normalize_model "$2")" || {
+        echo "[ERROR] 不支持的模型: $2"
+        exit 2
+      }
       shift 2
       ;;
-    --split-csv)
-      DATA_SPLIT_CSV="$2"
+    --input-root)
+      INPUT_ROOT="$2"
       shift 2
       ;;
-    --prepare-only)
-      PREPARE_ONLY=1
-      shift
+    --out-root)
+      OUT_ROOT="$2"
+      shift 2
+      ;;
+    --max-samples)
+      MAX_SAMPLES="$2"
+      shift 2
+      ;;
+    --sample-id)
+      SAMPLE_ID="$2"
+      shift 2
+      ;;
+    --continue-on-error)
+      CONTINUE_ON_ERROR="$2"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -39,48 +78,216 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-MODEL_DIR="${ROOT_DIR}/algorithms/${MODEL_NAME}"
-INPUT_DIR="${ROOT_DIR}/outputs/input/${MODEL_NAME}"
-PRED_DIR="${ROOT_DIR}/outputs/prediction/${MODEL_NAME}"
-EVAL_DIR="${ROOT_DIR}/outputs/evaluation/${MODEL_NAME}"
-
-mkdir -p "${INPUT_DIR}" "${PRED_DIR}" "${EVAL_DIR}"
-
-if [[ ! -d "${MODEL_DIR}" ]]; then
-  echo "[ERROR] 模型目录不存在: ${MODEL_DIR}"
-  exit 1
+if [[ -z "${MODEL_NAME}" ]]; then
+  echo "[ERROR] 缺少必填参数 --model"
+  usage
+  exit 2
 fi
-if [[ ! -f "${DATA_SPLIT_CSV}" ]]; then
-  echo "[ERROR] 数据索引不存在: ${DATA_SPLIT_CSV}"
-  echo "请先准备 inputs/antibody_datasets/dataset_index.csv"
-  exit 1
+if [[ ! "${MAX_SAMPLES}" =~ ^[0-9]+$ ]]; then
+  echo "[ERROR] --max-samples 必须为非负整数，当前: ${MAX_SAMPLES}"
+  exit 2
+fi
+if [[ "${CONTINUE_ON_ERROR}" != "0" && "${CONTINUE_ON_ERROR}" != "1" ]]; then
+  echo "[ERROR] --continue-on-error 仅支持 0 或 1"
+  exit 2
 fi
 
-echo "[INFO] 阶段1/3: 预处理"
-python "${MODEL_DIR}/preprocess.py" \
-  --af3-input "${ROOT_DIR}/inputs/alphafold3_inputs.json" \
-  --dataset-csv "${DATA_SPLIT_CSV}" \
-  --out-dir "${INPUT_DIR}"
+MODEL_INPUT_DIR="${INPUT_ROOT}/${MODEL_NAME}"
+MODEL_OUT_DIR="${OUT_ROOT}/${MODEL_NAME}"
+RUNNER_DIR="${ROOT_DIR}/scripts/native_runners"
+COLLECTOR="${RUNNER_DIR}/collect_top1.py"
 
-if [[ "${PREPARE_ONLY}" == "1" ]]; then
-  echo "[INFO] 已启用 --prepare-only，仅完成输入准备。"
-  echo "[INFO] 产物目录: ${INPUT_DIR}"
+case "${MODEL_NAME}" in
+  RFantibody) RUNNER="${RUNNER_DIR}/rfantibody.sh" ;;
+  germinal) RUNNER="${RUNNER_DIR}/germinal.sh" ;;
+  BindCraft) RUNNER="${RUNNER_DIR}/bindcraft.sh" ;;
+  boltzgen) RUNNER="${RUNNER_DIR}/boltzgen.sh" ;;
+esac
+
+if [[ ! -d "${MODEL_INPUT_DIR}" ]]; then
+  echo "[ERROR] 原生输入目录不存在: ${MODEL_INPUT_DIR}"
+  exit 1
+fi
+if [[ ! -x "${RUNNER}" ]]; then
+  echo "[ERROR] runner 不存在或不可执行: ${RUNNER}"
+  exit 1
+fi
+if [[ ! -f "${COLLECTOR}" ]]; then
+  echo "[ERROR] collector 不存在: ${COLLECTOR}"
+  exit 1
+fi
+
+mkdir -p "${MODEL_OUT_DIR}"
+MANIFEST_PATH="${MODEL_OUT_DIR}/manifest.csv"
+if [[ ! -f "${MANIFEST_PATH}" ]]; then
+  printf "sample_id,status,structure_path,sequence_path,meta_path,duration_sec,error_summary\n" > "${MANIFEST_PATH}"
+fi
+
+append_manifest() {
+  local sample_id="$1"
+  local status="$2"
+  local structure_path="$3"
+  local sequence_path="$4"
+  local meta_path="$5"
+  local duration_sec="$6"
+  local error_summary="$7"
+
+  SAMPLE_ID_VAL="${sample_id}" \
+  STATUS_VAL="${status}" \
+  STRUCTURE_PATH_VAL="${structure_path}" \
+  SEQUENCE_PATH_VAL="${sequence_path}" \
+  META_PATH_VAL="${meta_path}" \
+  DURATION_SEC_VAL="${duration_sec}" \
+  ERROR_SUMMARY_VAL="${error_summary}" \
+  MANIFEST_PATH_VAL="${MANIFEST_PATH}" \
+  python3 - <<'PY'
+import csv
+import os
+from pathlib import Path
+
+manifest = Path(os.environ["MANIFEST_PATH_VAL"])
+row = {
+  "sample_id": os.environ["SAMPLE_ID_VAL"],
+  "status": os.environ["STATUS_VAL"],
+  "structure_path": os.environ["STRUCTURE_PATH_VAL"],
+  "sequence_path": os.environ["SEQUENCE_PATH_VAL"],
+  "meta_path": os.environ["META_PATH_VAL"],
+  "duration_sec": os.environ["DURATION_SEC_VAL"],
+  "error_summary": os.environ["ERROR_SUMMARY_VAL"],
+}
+with manifest.open("a", encoding="utf-8", newline="") as f:
+  writer = csv.DictWriter(
+    f,
+    fieldnames=[
+      "sample_id",
+      "status",
+      "structure_path",
+      "sequence_path",
+      "meta_path",
+      "duration_sec",
+      "error_summary",
+    ],
+  )
+  writer.writerow(row)
+PY
+}
+
+collect_field() {
+  local meta_path="$1"
+  local field="$2"
+  META_PATH="${meta_path}" FIELD_NAME="${field}" python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+meta_path = Path(os.environ["META_PATH"])
+field = os.environ["FIELD_NAME"]
+if not meta_path.exists():
+  print("", end="")
+  raise SystemExit(0)
+try:
+  data = json.loads(meta_path.read_text(encoding="utf-8"))
+except Exception:
+  print("", end="")
+  raise SystemExit(0)
+value = data.get(field, "")
+if value is None:
+  value = ""
+print(str(value), end="")
+PY
+}
+
+declare -a SAMPLE_IDS
+if [[ -n "${SAMPLE_ID}" ]]; then
+  if [[ ! -d "${MODEL_INPUT_DIR}/${SAMPLE_ID}" ]]; then
+    echo "[ERROR] 指定样本不存在: ${MODEL_INPUT_DIR}/${SAMPLE_ID}"
+    exit 1
+  fi
+  SAMPLE_IDS=("${SAMPLE_ID}")
+else
+  while IFS= read -r sid; do
+    SAMPLE_IDS+=("${sid}")
+  done < <(python3 - <<'PY' "${MODEL_INPUT_DIR}"
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+for p in sorted(root.iterdir()):
+  if p.is_dir():
+    print(p.name)
+PY
+)
+fi
+
+if [[ "${#SAMPLE_IDS[@]}" -eq 0 ]]; then
+  echo "[WARN] 没有可运行样本: ${MODEL_INPUT_DIR}"
   exit 0
 fi
 
-echo "[INFO] 阶段2/3: 推理"
-bash "${MODEL_DIR}/make_predictions.sh" \
-  --input-dir "${INPUT_DIR}" \
-  --output-dir "${PRED_DIR}" \
-  --model-name "${MODEL_NAME}"
+if [[ "${MAX_SAMPLES}" != "0" && -z "${SAMPLE_ID}" && "${#SAMPLE_IDS[@]}" -gt "${MAX_SAMPLES}" ]]; then
+  SAMPLE_IDS=("${SAMPLE_IDS[@]:0:${MAX_SAMPLES}}")
+fi
 
-echo "[INFO] 阶段3/3: 后处理"
-python "${MODEL_DIR}/postprocess.py" \
-  --dataset-csv "${DATA_SPLIT_CSV}" \
-  --prediction-dir "${PRED_DIR}" \
-  --out-dir "${EVAL_DIR}"
+echo "[INFO] 原生推理模式启动"
+echo "[INFO] model=${MODEL_NAME}"
+echo "[INFO] samples=${#SAMPLE_IDS[@]}"
+echo "[INFO] input_root=${INPUT_ROOT}"
+echo "[INFO] out_root=${OUT_ROOT}"
 
-echo "[INFO] 指标汇总"
-python "${ROOT_DIR}/scripts/aggregate_metrics.py" --model "${MODEL_NAME}"
+overall_exit=0
+for sid in "${SAMPLE_IDS[@]}"; do
+  sample_input_dir="${MODEL_INPUT_DIR}/${sid}"
+  sample_out_dir="${MODEL_OUT_DIR}/${sid}"
+  mkdir -p "${sample_out_dir}"
+  stdout_log="${sample_out_dir}/run_stdout.log"
+  stderr_log="${sample_out_dir}/run_stderr.log"
+  meta_path="${sample_out_dir}/top1_meta.json"
 
-echo "[INFO] 运行完成: ${MODEL_NAME}"
+  echo "[INFO] 运行样本: ${sid}"
+  start_epoch="$(date +%s)"
+  if "${RUNNER}" \
+    --sample-id "${sid}" \
+    --sample-input-dir "${sample_input_dir}" \
+    --sample-output-dir "${sample_out_dir}" \
+    --project-root "${ROOT_DIR}" \
+    > "${stdout_log}" 2> "${stderr_log}"; then
+    runner_exit=0
+  else
+    runner_exit=$?
+  fi
+
+  if ! python3 "${COLLECTOR}" \
+    --model "${MODEL_NAME}" \
+    --sample-id "${sid}" \
+    --sample-input-dir "${sample_input_dir}" \
+    --sample-output-dir "${sample_out_dir}" \
+    --runner-exit-code "${runner_exit}"; then
+    echo "[WARN] collect_top1 异常: ${sid}"
+  fi
+
+  end_epoch="$(date +%s)"
+  duration="$((end_epoch - start_epoch))"
+  status="$(collect_field "${meta_path}" "status")"
+  structure_path="$(collect_field "${meta_path}" "top1_structure")"
+  sequence_path="$(collect_field "${meta_path}" "top1_sequence")"
+  error_summary="$(collect_field "${meta_path}" "error_summary")"
+  if [[ -z "${status}" ]]; then
+    status="failed"
+  fi
+
+  append_manifest "${sid}" "${status}" "${structure_path}" "${sequence_path}" "${meta_path}" "${duration}" "${error_summary}"
+
+  if [[ "${status}" == "failed" ]]; then
+    overall_exit=1
+    echo "[WARN] 样本失败: ${sid} (${error_summary:-unknown_error})"
+    if [[ "${CONTINUE_ON_ERROR}" == "0" ]]; then
+      echo "[ERROR] 因 --continue-on-error=0，提前终止。"
+      break
+    fi
+  else
+    echo "[OK] 样本完成: ${sid}"
+  fi
+done
+
+echo "[INFO] manifest: ${MANIFEST_PATH}"
+exit "${overall_exit}"

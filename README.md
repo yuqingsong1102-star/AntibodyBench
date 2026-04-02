@@ -11,12 +11,11 @@ AntibodyBench/
 │   ├── antibody_datasets/        # 训练/测试划分与索引
 │   └── alphafold3_inputs.json    # 抗体输入（AF3 风格）
 ├── outputs/
-│   ├── input/
-│   ├── prediction/
-│   └── evaluation/
+│   └── native_predictions/
 ├── scripts/
-│   ├── run.sh
-│   └── aggregate_metrics.py
+│   ├── run.sh                        # native inference orchestrator
+│   ├── data_prep/
+│   └── native_runners/
 └── evaluation_tools/
 ```
 
@@ -24,91 +23,49 @@ AntibodyBench/
 
 ```bash
 cd AntibodyBench
-bash scripts/run.sh --model boltzgen
+bash scripts/run.sh --model boltzgen --max-samples 1
 ```
 
-## 第一步：仅输入准备（不跑模型）
-
-先完成输入准备里程碑，验证每个模型的输入是否齐全可追踪：
+## 第一步：准备数据索引与原生输入
 
 ```bash
-# 三个模型分别执行（不会触发推理）
-bash scripts/run.sh --model germinal --prepare-only
-bash scripts/run.sh --model boltzgen --prepare-only
-bash scripts/run.sh --model BindCraft --prepare-only
+python scripts/data_prep/generate_dataset_index.py
+python scripts/data_prep/fetch_reference_complexes.py --input-csv inputs/antibody_datasets/dataset_index.csv --output-csv inputs/antibody_datasets/dataset_index.csv
+python scripts/data_prep/fill_cdr_h3_from_anarci.py --input-csv inputs/antibody_datasets/dataset_index.csv --output-csv inputs/antibody_datasets/dataset_index_h3_annotated.csv
+python scripts/data_prep/build_model_inputs_native.py
 ```
 
-v1 默认只依赖一个索引文件：
-
-- `inputs/antibody_datasets/dataset_index.csv`
-
-说明：
-
-- 入口脚本 `scripts/run.sh` 默认就读取 `dataset_index.csv`。
-- `alphafold3_inputs.json` 为可选增强信息；不存在时预处理会自动回退，不阻塞输入准备。
-
-输入准备产物：
-
-- `outputs/input/<model>/<sample_id>.json`
-- `outputs/input/<model>/_manifest.json`
-
-`_manifest.json` 包含：
-
-- `total_samples`
-- `ready_samples`
-- `skipped_samples`
-- `skip_reasons`
-- `records`（逐样本状态与原因）
-
-支持模型：
-
-- `germinal`
-- `boltzgen`
-- `BindCraft`
-
-## 模型接入说明
-
-默认可用 `*_DRY_RUN=1` 快速打通流程；真实推理时可直接使用内置默认命令模板（也可手动覆盖）。
-
-每个模型默认会通过 `conda run` 使用独立环境（推荐）：
-
-- germinal: `GERMINAL_CONDA_ENV=germinal`
-- boltzgen: `BOLTZGEN_CONDA_ENV=boltzgen`
-- BindCraft: `BINDCRAFT_CONDA_ENV=BindCraft`
-
-如需关闭 `conda run`（不推荐）可设置 `*_USE_CONDA_RUN=0`。
-
-### Germinal torch 修复
-
-若运行 `germinal` 时出现 `transformers` 要求 `torch>=2.6` 的错误，可执行：
+## 第二步：运行原生推理（默认 smoke_1）
 
 ```bash
-bash scripts/fix_germinal_torch.sh
-```
-
-脚本会自动打印升级前后版本并校验 `torch >= 2.6.0`。
-
-### 轻量调试建议
-
-```bash
-# boltzgen
-BOLTZGEN_MAX_SAMPLES=1 \
-BOLTZGEN_NUM_DESIGNS=2 \
-BOLTZGEN_BUDGET=1 \
-bash scripts/run.sh --model boltzgen
-
-# BindCraft
-BINDCRAFT_MAX_SAMPLES=1 \
-BINDCRAFT_MAX_TRAJ=1 \
-BINDCRAFT_NUM_FINAL=1 \
+# 默认只跑 1 个样本（--max-samples 默认值为 1）
+bash scripts/run.sh --model RFantibody
+bash scripts/run.sh --model germinal
 bash scripts/run.sh --model BindCraft
+bash scripts/run.sh --model boltzgen
 ```
 
-## 输入准备阶段验收清单（v1）
+常用参数：
 
-- 三个模型在 `--prepare-only` 下均返回退出码 0。
-- 每个模型目录都生成 `_manifest.json`，且包含统计字段。
-- 抽查 5 个 `ready` 样本：
-  - 对应 `<sample_id>.json` 文件存在；
-  - `records[*].input_json` 路径可访问。
-- `skip` 样本必须有明确 `reason`，不能静默丢失。
+- `--sample-id <id>`：只跑一个指定样本
+- `--max-samples <N>`：限制样本数（`0` 表示不限制）
+- `--continue-on-error <0|1>`：失败是否继续（默认 `1`）
+- `--input-root` / `--out-root`：覆盖输入输出根目录
+
+## 输出契约（统一）
+
+每样本目录：
+
+`outputs/native_predictions/<model>/<sample_id>/`
+
+最小交付文件：
+
+- `top1_structure.(pdb|cif)`
+- `top1_sequence.fasta`
+- `top1_meta.json`
+- `run_stdout.log`
+- `run_stderr.log`
+
+模型级汇总：
+
+- `outputs/native_predictions/<model>/manifest.csv`

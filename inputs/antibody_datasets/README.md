@@ -34,18 +34,18 @@ Use this file to inspect failures and data quality.
 
 ## 3) `dataset_index_ready.csv` (filtered ready subset)
 
-Subset for actual evaluation runs.
+Subset for stable native inference runs.
 Usually includes only rows with:
 
 - `cdr_h3_status == ok`
 - non-empty `cdr_h3_start` and `cdr_h3_end`
 
-Use this file with pipeline runs when you want stable metric output.
+Use this file with native inference orchestration when you want stable sample quality.
 
 Example:
 
 ```bash
-bash scripts/core/run.sh --model RFantibody --split-csv inputs/antibody_datasets/dataset_index_ready.csv
+bash scripts/run.sh --model RFantibody --sample-id <sample_id_from_ready_csv>
 ```
 
 ## Recommended workflow
@@ -54,5 +54,5 @@ bash scripts/core/run.sh --model RFantibody --split-csv inputs/antibody_datasets
 2. Fill full-complex paths: `fetch_reference_complexes.py`
 3. Annotate H3: `fill_cdr_h3_from_anarci.py`
 4. Filter ready subset: produce/update `dataset_index_ready.csv`
-5. Run model evaluation using ready subset
+5. Run native inference and inspect `outputs/native_predictions/<model>/manifest.csv`
 
