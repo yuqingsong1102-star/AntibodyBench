@@ -35,7 +35,7 @@ fi
 MODEL_WORKDIR="${GERMINAL_WORKDIR:-/home/yqsong/projects/antibody_benchmark/models/germinal}"
 CONDA_ENV="${GERMINAL_CONDA_ENV:-germinal}"
 USE_CONDA_RUN="${GERMINAL_USE_CONDA_RUN:-1}"
-NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
+NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
 default_cmd="python run_germinal.py __OVERRIDES__ results_dir=\"__OUTPUT_DIR__\" experiment_name=\"__SAMPLE_ID__\""

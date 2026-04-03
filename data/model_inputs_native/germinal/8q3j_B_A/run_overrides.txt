@@ -2,3 +2,4 @@ target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/d
 target.target_chain='A'
 target.binder_chain='B'
 target.target_hotspots='A22,A23,A24,A25,A26,A38,A40,A41,A62,A63,A65,A66,A83,A85'
+af_params_dir='/home/yqsong/projects/antibody_benchmark/models/BindCraft/params'

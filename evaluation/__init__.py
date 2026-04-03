@@ -1,5 +1,9 @@
-"""Evaluation utilities for AntibodyBench.
+"""Evaluation package for AntibodyBench.
 
-This package intentionally stays lightweight: only numeric metrics and small helpers live here.
+Layered layout:
+- ingest/: build unified long tables from native outputs
+- metrics/: compute per-run metrics on the long table
+- report/: build summaries, figures, and markdown reports
+- pipeline/: orchestrate the full evaluation workflow
 """
 

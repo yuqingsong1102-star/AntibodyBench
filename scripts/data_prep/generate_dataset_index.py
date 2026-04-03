@@ -23,7 +23,7 @@ def main() -> int:
   parser.add_argument(
     "--out",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "inputs" / "antibody_datasets" / "dataset_index.csv",
+    default=Path(__file__).resolve().parents[2] / "inputs" / "dataset_index.csv",
     help="Output dataset index path compatible with AntibodyBench scripts/run.sh.",
   )
   args = parser.parse_args()

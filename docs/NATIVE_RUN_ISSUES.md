@@ -1,80 +1,84 @@
 # Native Run Issues Log
 
-## 2026-04-01 one-sample real run (`sample_id=8q3j_B_A`)
+## 当前状态总览 (2026-04-03)
 
-Output root: `outputs/native_predictions_real`
-
-### 1) RFantibody
-
-- **Status:** failed
-- **Observed:** runner starts, model loads, then no `top1_structure`
-- **Key error:** CUDA OOM while loading/running RFdiffusion checkpoint
-- **Evidence:** `outputs/native_predictions_real/RFantibody/8q3j_B_A/run_stderr.log`
-- **Next action:**
-  - run on freer GPU (`CUDA_VISIBLE_DEVICES=6` or `7`)
-  - reduce diffusion load (lower `--diffuser-t`, smaller design count)
-  - avoid running with other heavy GPU jobs in parallel
-
-### 2) germinal
-
-- **Status:** failed
-- **Observed:** pipeline starts, then exits before accepted structures
-- **Key error:** transformers blocks `torch.load` because torch < 2.6
-- **Evidence:** `outputs/native_predictions_real/germinal/8q3j_B_A/run_stderr.log`
-- **Next action:**
-  - upgrade torch in `germinal` env to `>=2.6`
-  - if network unstable, retry download or use local wheel/cache mirror
-  - proxy test note (2026-04-01): `http://1user:pass1@10.70.106.147:7893` returned `Connection refused` from this host
-  - after torch upgrade to 2.6.0, new blocker: `torchvision::nms does not exist` (torch/torchvision mismatch), need aligned torchvision build
-  - after torchvision fix, new blocker is GPU OOM in JAX step; needs lower GPU pressure and explicit GPU selection
-  - after cleaning duplicate torch metadata, `transformers` version gate is fixed (`is_torch_greater_or_equal('2.6') == True`)
-  - latest blocker now: `ValueError: Unrecognized amino acid token: A` in `colabdesign/iglm/model.py` during `CustomIgLM` init
-
-### 3) BindCraft
-
-- **Status:** failed (no final structure produced in this run)
-- **Observed:** process runs very long; no final accepted structure detected by collector
-- **Evidence:** `outputs/native_predictions_real/BindCraft/8q3j_B_A/top1_meta.json`
-- **Next action:**
-  - run a quick config first (`number_of_final_designs=1`, lower iterations)
-  - confirm expected output files in `native_run/Accepted` or stats CSV
-  - if run is intentionally long, set longer wait window before collect
-
-### 4) boltzgen
-
-- **Status:** failed (collector did not find final structure in this run window)
-- **Observed:** run creates config files and `design_spec.cif`, but no ranked outputs found before stop
-- **Evidence:** `outputs/native_predictions_real/boltzgen/8q3j_B_A/top1_meta.json`
-- **Next action:**
-  - use existing env `bg` (`BOLTZGEN_CONDA_ENV=bg`)
-  - allow full run to finish (longer wait) before collecting Top-1
-  - verify `native_run/final_ranked_designs/` appears
-
-## Notes
-
-- Current GPU nodes are heavily occupied by other workloads.
-- For stable validation, prefer running models one-by-one during lower GPU contention windows.
+| 模型 | 状态 | 说明 |
+|---|---|---|
+| boltzgen | ✅ 成功 | 6 步全部完成，生成 2 个 VHH 设计 |
+| BindCraft | ⏳ 待运行 | 配置已修复，等待 GPU |
+| germinal | ❌ GPU OOM | 需 ~11 GB 连续显存，当前无可用 GPU |
+| RFantibody | ⏳ 待运行 | 配置已优化，等待 GPU |
 
 ---
 
-## 2026-04-02 Fixes Applied
+## 2026-04-02 run2 实际运行 (`sample_id=8q3j_B_A`)
 
-### 1) RFantibody
-- **Fix:** runner now auto-selects GPU with most free memory (`nvidia-smi` query) when `CUDA_VISIBLE_DEVICES` not set
-- **Fix:** reduced `rfantibody_config.env`: `NUM_DESIGNS=1`, `NUM_SEQS=1`, `NUM_RECYCLES=3` to lower VRAM footprint
-- **Remaining risk:** still needs a GPU with ≥4 GB free; all 8 GPUs currently under heavy load
+Output root: `outputs/native_predictions_run2`
 
-### 2) germinal
-- **Fix:** reinstalled `torch==2.6.0+cu124` with CUDA support (`torch.cuda.is_available() == True` confirmed)
-- **Fix:** patched `iglm/model/IgLM.py` — replaced `BertTokenizerFast` with `PreTrainedTokenizerFast` built from `tokenizers.models.WordLevel`, because `transformers 5.3.0` silently drops non-special tokens from simple vocab files
-- **Verified:** all 20 standard amino acids now correctly tokenized (A→5, R→19, ... V→22)
-- **Next risk:** GPU OOM in JAX step may still appear under GPU contention
+### 1) boltzgen — ✅ 成功
 
-### 3) BindCraft
-- **Fix:** `settings_target.json` changed `number_of_final_designs: 10 → 1`
-- **Fix:** created sample-local `advanced_settings.json` with `max_trajectories: 20` (was `false`/unlimited) and `soft_iterations: 50` (was 75)
-- **Fix:** `bindcraft.sh` now checks for `${SAMPLE_INPUT_DIR}/advanced_settings.json` before falling back to global default
+- **Status:** 成功完成全部 6 步 pipeline (design → inverse_folding → folding → design_folding → analysis → filtering)
+- **结果:** 2 个 VHH 设计
+  - Rank 1 (`design_spec_0`): 123 aa, quality_score=1.0, designfolding-rmsd=0.98Å
+  - Rank 2 (`design_spec_1`): 137 aa, quality_score=0.0, designfolding-rmsd=2.22Å
+- **输出位置:** `outputs/native_predictions_run2/boltzgen/8q3j_B_A/native_run/final_ranked_designs/`
+- **已修复问题:**
+  - env 名称 `boltzgen` → `bg`
+  - 强制单 GPU 模式（`CUDA_VISIBLE_DEVICES=0`），避免 distributed TCPStore 失败
+  - NATIVE_OUT_DIR 改为绝对路径（修复 runner cd 后相对路径错位问题）
+- **注意:** collector (`collect_top1.py`) 需适配 boltzgen 的 CIF 输出格式
 
-### 4) boltzgen
-- **Fix:** `boltzgen.sh` default `BOLTZGEN_CONDA_ENV` changed from `boltzgen` to `bg` (matching actual env name)
-- **Fix:** runner now exports `CUDA_VISIBLE_DEVICES=0` by default to force single-GPU mode, avoiding distributed TCPStore failures
+### 2) germinal — ❌ GPU OOM
+
+- **Status:** 失败，JAX/XLA 在 AF design step 时 OOM
+- **Key error:** `RESOURCE_EXHAUSTED: Out of memory while trying to allocate 11121629096 bytes` (~10.36 GB)
+- **Evidence:** `outputs/native_predictions_run2/germinal/8q3j_B_A/run_stderr.log`
+- **已修复问题:**
+  - torch 升级到 2.6.0+cu124（CUDA 可用）
+  - IgLM tokenizer 兼容性问题已修（transformers 5.3.0 + WordLevel tokenizer patch）
+  - af_params_dir 指向 `models/BindCraft/params`
+  - NATIVE_OUT_DIR 改为绝对路径
+- **阻塞:** 需要一张 ≥11 GB 连续空闲显存的 GPU。当前最大空闲 GPU 4 仅 ~10.7 GB
+- **Next action:** 等待 GPU 空闲，或考虑降低 AF 模型规模（fewer models / fewer recycles）
+
+### 3) BindCraft — ⏳ 待运行
+
+- **Status:** 配置已修复，尚未重新运行
+- **已修复问题:**
+  - `settings_target.json`: `number_of_final_designs: 10 → 1`
+  - 创建 sample-local `advanced_settings.json`: `max_trajectories: 20`, `soft_iterations: 50`
+  - `bindcraft.sh` 优先读取 sample 目录下的 `advanced_settings.json`
+  - NATIVE_OUT_DIR 改为绝对路径
+- **Next action:** 在 GPU 有空余时运行，预计需 ~6-10 分钟/trajectory
+
+### 4) RFantibody — ⏳ 待运行
+
+- **Status:** 配置已优化，尚未尝试运行
+- **已修复问题:**
+  - runner 自动选择空闲显存最多的 GPU
+  - `rfantibody_config.env`: `NUM_DESIGNS=1, NUM_SEQS=1, NUM_RECYCLES=3`（降低显存需求）
+  - NATIVE_OUT_DIR 改为绝对路径
+- **Next action:** 在 GPU 有空余时运行
+
+---
+
+## 通用修复 (2026-04-02)
+
+- **输出路径修复:** 所有 4 个 runner 的 `NATIVE_OUT_DIR` 从相对路径改为绝对路径解析。原因：runner 会 `cd` 到模型目录，导致相对路径写到错误位置
+- **GPU 环境:** 服务器 8×RTX 4090 (24GB)，全部被其他用户进程占用大部分显存
+
+---
+
+## 历史记录
+
+### 2026-04-01 首次 real run
+
+Output root: `outputs/native_predictions_real`
+
+所有 4 个模型均失败：
+- **RFantibody:** CUDA OOM（未优化配置）
+- **germinal:** torch 版本过低 → 升级后 torchvision 不匹配 → tokenizer 不兼容
+- **BindCraft:** 运行时间过长，无限制 trajectory，未产出设计
+- **boltzgen:** env 名称错误 + 分布式通信失败
+
+详细修复过程见上方各模型"已修复问题"。

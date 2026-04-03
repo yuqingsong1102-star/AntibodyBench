@@ -10,9 +10,9 @@ Only do 1-2 items per session.
   - [ ] `python -c "import anarci; print('anarci ok')"`
   - [ ] `which hmmscan`
 - [ ] Refresh full complex paths:
-  - [ ] `python scripts/data_prep/fetch_reference_complexes.py --input-csv inputs/antibody_datasets/dataset_index.csv --output-csv inputs/antibody_datasets/dataset_index.csv`
+  - [ ] `python scripts/data_prep/fetch_reference_complexes.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index.csv`
 - [ ] Re-run H3 annotation:
-  - [ ] `python scripts/data_prep/fill_cdr_h3_from_anarci.py --input-csv inputs/antibody_datasets/dataset_index.csv --output-csv inputs/antibody_datasets/dataset_index_h3_annotated.csv`
+  - [ ] `python scripts/data_prep/fill_cdr_h3_from_anarci.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index_h3_annotated.csv`
 
 ## Day 2: Build Ready Subset + First Metrics
 
@@ -56,5 +56,5 @@ Only do 1-2 items per session.
 
 - [ ] At least one model has valid non-empty `cdr_h3_rmsd` for a non-trivial sample set
 - [ ] Same workflow runs reproducibly from `dataset_index_ready.csv`
-- [ ] Project docs (`docs/`, `scripts/README.md`, `inputs/README.md`, `outputs/README.md`) are enough for rerun without memory
+- [ ] Project docs (`docs/`, `scripts/README.md`, `inputs/README.md`) are enough for rerun without memory
 

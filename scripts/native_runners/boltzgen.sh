@@ -35,7 +35,7 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 PROTOCOL="${BOLTZGEN_PROTOCOL:-protein-anything}"
 NUM_DESIGNS="${BOLTZGEN_NUM_DESIGNS:-2}"
 BUDGET="${BOLTZGEN_BUDGET:-1}"
-NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
+NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
 default_cmd="boltzgen run \"${SPEC_FILE}\" --output \"${NATIVE_OUT_DIR}\" --protocol \"${PROTOCOL}\" --num_designs ${NUM_DESIGNS} --budget ${BUDGET}"

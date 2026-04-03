@@ -33,13 +33,13 @@ def main() -> int:
   parser.add_argument(
     "--input-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "inputs" / "antibody_datasets" / "dataset_index.csv",
+    default=Path(__file__).resolve().parents[2] / "inputs" / "dataset_index.csv",
     help="Input dataset index CSV.",
   )
   parser.add_argument(
     "--output-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "inputs" / "antibody_datasets" / "dataset_index.csv",
+    default=Path(__file__).resolve().parents[2] / "inputs" / "dataset_index.csv",
     help="Output CSV (can be same as input).",
   )
   parser.add_argument(

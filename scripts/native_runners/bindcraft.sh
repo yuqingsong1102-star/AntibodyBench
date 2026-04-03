@@ -37,7 +37,7 @@ if [[ -f "${SAMPLE_INPUT_DIR}/advanced_settings.json" ]]; then
 else
   ADVANCED_JSON="${BINDCRAFT_ADVANCED:-${MODEL_WORKDIR}/settings_advanced/default_4stage_multimer.json}"
 fi
-NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
+NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
 default_cmd="python bindcraft.py --settings \"${SETTINGS_FILE}\" --filters \"${FILTERS_JSON}\" --advanced \"${ADVANCED_JSON}\""

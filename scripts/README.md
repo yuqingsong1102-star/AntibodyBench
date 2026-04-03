@@ -215,14 +215,13 @@ bash scripts/run.sh --model boltzgen --sample-id 8q3j_B_A
 ## Legacy / utility
 
 - `scripts/prepare_antibody_dataset.py`
-- `scripts/visualize_metrics.py`
 
 ## Evaluation (Track B)
 
 评估分析主入口已迁移到 `evaluation/` 目录，建议使用一键命令：
 
 ```bash
-python evaluation/aggregate/run_eval_pipeline.py
+python -m evaluation.pipeline.run_eval_pipeline
 ```
 
 默认产物：

@@ -31,7 +31,7 @@ fi
 source "${CONFIG_FILE}"
 
 MODEL_WORKDIR="${RFANTIBODY_WORKDIR:-/home/yqsong/projects/antibody_benchmark/models/RFantibody}"
-NATIVE_OUT_DIR="${SAMPLE_OUTPUT_DIR}/native_run"
+NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
 # Auto-select GPU with most free memory if CUDA_VISIBLE_DEVICES not set

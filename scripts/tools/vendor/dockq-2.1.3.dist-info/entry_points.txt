@@ -1,0 +1,2 @@
+[console_scripts]
+DockQ = DockQ.__main__:main

@@ -148,7 +148,7 @@ def main() -> int:
   parser.add_argument(
     "--dataset-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "inputs" / "antibody_datasets" / "dataset_index_ready.csv",
+    default=Path(__file__).resolve().parents[2] / "inputs" / "dataset_index_ready.csv",
     help="Input benchmark index CSV.",
   )
   parser.add_argument(
