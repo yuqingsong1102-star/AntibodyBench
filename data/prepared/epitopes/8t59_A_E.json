@@ -1,0 +1,29 @@
+{
+  "sample_id": "8t59_A_E",
+  "pdb_id": "8t59",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8t59.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8t59.pdb",
+  "antigen_chain": "E",
+  "antigen_chain_requested": "E",
+  "antigen_chain_used": "E",
+  "antibody_chain_requested": "A",
+  "antibody_chain_used": "A",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 10,
+  "hotspot_residues": [
+    "E153",
+    "E154",
+    "E155",
+    "E156",
+    "E157",
+    "E158",
+    "E159",
+    "E160",
+    "E162",
+    "E163"
+  ],
+  "hotspot_string": "E153,E154,E155,E156,E157,E158,E159,E160,E162,E163",
+  "target_pdb_repaired": false
+}

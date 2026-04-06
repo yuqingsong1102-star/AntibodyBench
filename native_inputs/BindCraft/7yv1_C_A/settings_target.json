@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "7yv1_C_A",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7yv1.pdb",
+  "chains": "A",
+  "target_hotspot_residues": "A21,A25,A27,A28,A29,A30,A31,A32,A33,A34,A36,A38,A40",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

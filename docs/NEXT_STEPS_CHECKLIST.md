@@ -6,21 +6,17 @@ Only do 1-2 items per session.
 ## Day 1: Environment + Data Readiness
 
 - [ ] Activate your working conda env (recommended: `abbench`)
-- [ ] Ensure ANARCI dependency chain is ready:
-  - [ ] `python -c "import anarci; print('anarci ok')"`
-  - [ ] `which hmmscan`
-- [ ] Refresh full complex paths:
-  - [ ] `python scripts/data_prep/fetch_reference_complexes.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index.csv`
-- [ ] Re-run H3 annotation:
-  - [ ] `python scripts/data_prep/fill_cdr_h3_from_anarci.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index_h3_annotated.csv`
+- [ ] Run one-step data prep:
+  - [ ] `python scripts/data_prep/prepare_native_inputs.py`
 
 ## Day 2: Build Ready Subset + First Metrics
 
-- [ ] Create/update ready subset (`dataset_index_ready.csv`) from rows with `cdr_h3_status=ok`
+- [ ] Confirm `data/prepared/dataset_index_ready.csv` was refreshed
 - [ ] Run a small native smoke check (single sample):
   - [ ] `bash scripts/run.sh --model RFantibody --sample-id <sample_id> --max-samples 1`
 - [ ] Verify unified output contract:
-  - [ ] `outputs/native_predictions/<model>/<sample_id>/top1_meta.json` exists
+  - [ ] `outputs/native_predictions/<model>/<sample_id>/run_meta.json` exists
+  - [ ] `outputs/native_predictions/<model>/<sample_id>/candidate_manifest.csv` exists
   - [ ] `outputs/native_predictions/<model>/manifest.csv` has one new row
 
 ## Day 3: Multi-Model Consistency
@@ -39,7 +35,7 @@ Only do 1-2 items per session.
   - [ ] check `status` / `error_summary` columns in `outputs/native_predictions/<model>/manifest.csv`
 - [ ] Spot-check 3-5 failed samples:
   - [ ] open `run_stdout.log` / `run_stderr.log`
-  - [ ] open `top1_meta.json` for selection rule and failure reason
+  - [ ] open `run_meta.json` for failure reason
 
 ## Troubleshooting Quick Notes
 
@@ -48,13 +44,14 @@ Only do 1-2 items per session.
   - Check chain IDs in `dataset_index` match reference complex structure
   - Check `reference_complex_path` points to full complex, not antigen-only structure
 
-- If ANARCI fails:
-  - Confirm `hmmscan` exists in PATH
-  - Re-run with a tiny CSV subset first
+- If native input preparation fails:
+  - Check `data/raw/dataset_index.csv` formatting and required columns
+  - Check `data/raw/raw_pdbs/` and `data/raw/reference_complexes/` are readable
+  - Check `data/prepared/epitopes/` is writable
 
 ## Definition of Done (v1)
 
 - [ ] At least one model has valid non-empty `cdr_h3_rmsd` for a non-trivial sample set
-- [ ] Same workflow runs reproducibly from `dataset_index_ready.csv`
-- [ ] Project docs (`docs/`, `scripts/README.md`, `inputs/README.md`) are enough for rerun without memory
+- [ ] Same workflow runs reproducibly from `data/prepared/dataset_index_ready.csv`
+- [ ] Project docs (`docs/`, `scripts/README.md`, `data/prepared/README.md`) are enough for rerun without memory
 

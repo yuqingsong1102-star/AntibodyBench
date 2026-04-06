@@ -1,0 +1,13 @@
+entities:
+  - file:
+      path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8f5n.pdb"
+      include:
+        - chain:
+            id: "A"
+  - file:
+      path:
+        - "/home/yqsong/projects/antibody_benchmark/models/boltzgen/example/nanobody_scaffolds/7eow.yaml"
+        - "/home/yqsong/projects/antibody_benchmark/models/boltzgen/example/nanobody_scaffolds/7xl0.yaml"
+
+# Optional: add hotspot-focused constraints / include-exclude masks per boltzgen examples.
+# target_hotspots_from_epitopes: "A45,A48,A49,A50,A51,A93,A122,A123,A124,A125,A126,A127,A128,A129,A130,A131,A132,A134,A135"

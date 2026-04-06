@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "8ts0_B_C",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8ts0.pdb",
+  "chains": "C",
+  "target_hotspot_residues": "C153,C155,C156,C157,C165,C167,C171,C173,C181,C183,C184,C185,C186,C275,C279,C280,C281",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

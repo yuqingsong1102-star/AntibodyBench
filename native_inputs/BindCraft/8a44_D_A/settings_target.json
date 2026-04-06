@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "8a44_D_A",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8a44.pdb",
+  "chains": "A",
+  "target_hotspot_residues": "A261,A262,A263,A265,A268,A269,A330,A333,A334,A335,A336,A337,A338,A339,A340,A341,A344,A345",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

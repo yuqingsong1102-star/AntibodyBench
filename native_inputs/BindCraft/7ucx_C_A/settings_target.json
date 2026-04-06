@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "7ucx_C_A",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7ucx.pdb",
+  "chains": "A",
+  "target_hotspot_residues": "A1,A2,A3,A4,A5,A6,A7,A8,A9,A11,A14",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

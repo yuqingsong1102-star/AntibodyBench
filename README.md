@@ -6,15 +6,15 @@
 
 ```text
 AntibodyBench/
-├── data/                        # 参考结构、ready 样本对应原始数据、模型输入
-├── inputs/                      # 样本索引 CSV（base / annotated / ready）
+├── data/                        # raw 源数据与 prepared 派生基准数据
+├── native_inputs/              # 四个模型各自的原生输入树
 ├── outputs/                     # native 推理结果与评估结果（生成物）
 ├── scripts/
 │   ├── run.sh                  # 原生推理编排入口
 │   ├── data_prep/              # 数据准备脚本
 │   ├── native_runners/         # 四个模型的原生 runner
-│   └── tools/                  # 项目自带 TMscore / DockQ 工具
-├── evaluation/                  # ingest / metrics / report / pipeline 四层评估体系
+│   └── tools/                  # 可选工具（如 TMscore / DockQ 包装，评估流水线当前不调用）
+├── evaluation/                  # ingest / judge / metrics / report / pipeline
 └── docs/                        # 项目地图、问题记录、后续计划
 ```
 
@@ -30,17 +30,15 @@ bash scripts/run.sh --model boltzgen --sample-id 8q3j_B_A --out-root outputs/nat
 ## 第一步：准备数据索引与原生输入
 
 ```bash
-python scripts/data_prep/generate_dataset_index.py
-python scripts/data_prep/fetch_reference_complexes.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index.csv
-python scripts/data_prep/fill_cdr_h3_from_anarci.py --input-csv inputs/dataset_index.csv --output-csv inputs/dataset_index_h3_annotated.csv
-python scripts/data_prep/build_model_inputs_native.py
+python scripts/data_prep/prepare_native_inputs.py
 ```
 
-三个索引文件的含义：
+现在主流程只强调两个索引概念：
 
-- `inputs/dataset_index.csv`：原始样本索引
-- `inputs/dataset_index_h3_annotated.csv`：加入 CDR-H3 标注状态后的审核表
-- `inputs/dataset_index_ready.csv`：过滤后的稳定可运行样本子集
+- `data/raw/dataset_index.csv`：原始源索引
+- `data/prepared/dataset_index_ready.csv`：最终用于构建四模型输入、运行与评估的 ready 子集
+
+派生产物现在统一落在两个位置：`data/prepared/` 放 ready 索引与 epitope 缓存，`native_inputs/` 放四模型原生输入树。
 
 ## 第二步：运行原生推理（默认 smoke_1）
 
@@ -67,9 +65,9 @@ bash scripts/run.sh --model boltzgen
 
 最小交付文件：
 
-- `top1_structure.(pdb|cif)`
-- `top1_sequence.fasta`
-- `top1_meta.json`
+- `candidate_manifest.csv`
+- `run_meta.json`
+- `native_run/`
 - `run_stdout.log`
 - `run_stderr.log`
 
@@ -77,19 +75,18 @@ bash scripts/run.sh --model boltzgen
 
 - `outputs/native_predictions_<run_tag>/<model>/manifest.csv`
 
-## 第三步：运行统一评估
+## 第三步：运行统一评估（Phase1）
+
+在仓库根目录 `AntibodyBench/` 下执行：
 
 ```bash
 python -m evaluation.pipeline.run_eval_pipeline \
-	--native-root outputs/native_predictions_run2 \
-	--index-csv inputs/dataset_index_ready.csv \
-	--out-dir outputs/evaluation/all_models
+  --native-root outputs/native_predictions_run2 \
+  --index-csv data/prepared/dataset_index_ready.csv \
+  --out-dir outputs/evaluation/external_binding_benchmark_phase1 \
+  --fallback-to-source-structure
 ```
 
-默认情况下，评估管线会优先读取 `outputs/native_predictions_run2`；若不存在，再回退到 `real + smoke` 历史目录。
+无外部 judge manifest 时需加 `--fallback-to-source-structure`（用模型 `top1` 结构占位跑通评分，非正式 judge 结论）。默认会优先使用 `outputs/native_predictions_run2`，否则回退到 `native_predictions_real` 与 `native_predictions_smoke`。
 
-## 评估工具
-
-- `TMscore` 默认使用项目自带二进制：`scripts/tools/bin/TMscore`
-- `DockQ` 默认使用项目内包装脚本：`scripts/tools/bin/DockQ.py`
-- 两者都不依赖系统 PATH 中的同名命令
+详见 `evaluation/README.md`。

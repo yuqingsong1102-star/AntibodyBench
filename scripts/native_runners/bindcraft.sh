@@ -37,17 +37,54 @@ if [[ -f "${SAMPLE_INPUT_DIR}/advanced_settings.json" ]]; then
 else
   ADVANCED_JSON="${BINDCRAFT_ADVANCED:-${MODEL_WORKDIR}/settings_advanced/default_4stage_multimer.json}"
 fi
+FINAL_DESIGNS_OVERRIDE="${BINDCRAFT_NUM_FINAL_DESIGNS:-}"
+MAX_TRAJECTORIES_OVERRIDE="${BINDCRAFT_MAX_TRAJECTORIES:-}"
 NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
+DESIGN_ROOT="${BINDCRAFT_DESIGN_PATH:-${NATIVE_OUT_DIR}/designs}"
+RUNTIME_INPUT_DIR="${NATIVE_OUT_DIR}/runtime_inputs"
+RUNTIME_SETTINGS_FILE="${RUNTIME_INPUT_DIR}/settings_target.runtime.json"
+RUNTIME_ADVANCED_FILE="${RUNTIME_INPUT_DIR}/advanced_settings.runtime.json"
+mkdir -p "${RUNTIME_INPUT_DIR}"
 
-default_cmd="python bindcraft.py --settings \"${SETTINGS_FILE}\" --filters \"${FILTERS_JSON}\" --advanced \"${ADVANCED_JSON}\""
+python3 - <<'PY' "${SETTINGS_FILE}" "${RUNTIME_SETTINGS_FILE}" "${DESIGN_ROOT}" "${FINAL_DESIGNS_OVERRIDE}"
+import json
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+design_root = sys.argv[3]
+final_designs_raw = sys.argv[4].strip()
+payload = json.loads(src.read_text(encoding="utf-8"))
+payload["design_path"] = design_root
+if final_designs_raw:
+    payload["number_of_final_designs"] = int(final_designs_raw)
+dst.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+
+python3 - <<'PY' "${ADVANCED_JSON}" "${RUNTIME_ADVANCED_FILE}" "${MAX_TRAJECTORIES_OVERRIDE}"
+import json
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+max_trajectories_raw = sys.argv[3].strip()
+payload = json.loads(src.read_text(encoding="utf-8"))
+if max_trajectories_raw:
+    payload["max_trajectories"] = int(max_trajectories_raw)
+dst.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+
+default_cmd="python bindcraft.py --settings \"${RUNTIME_SETTINGS_FILE}\" --filters \"${FILTERS_JSON}\" --advanced \"${RUNTIME_ADVANCED_FILE}\""
 CMD_TEMPLATE="${BINDCRAFT_CMD:-${default_cmd}}"
 cmd="${CMD_TEMPLATE//__SAMPLE_ID__/${SAMPLE_ID}}"
 cmd="${cmd//__INPUT_DIR__/${SAMPLE_INPUT_DIR}}"
 cmd="${cmd//__OUTPUT_DIR__/${NATIVE_OUT_DIR}}"
-cmd="${cmd//__SETTINGS_FILE__/${SETTINGS_FILE}}"
+cmd="${cmd//__SETTINGS_FILE__/${RUNTIME_SETTINGS_FILE}}"
 cmd="${cmd//__FILTERS_FILE__/${FILTERS_JSON}}"
-cmd="${cmd//__ADVANCED_FILE__/${ADVANCED_JSON}}"
+cmd="${cmd//__ADVANCED_FILE__/${RUNTIME_ADVANCED_FILE}}"
 
 if [[ ! -d "${MODEL_WORKDIR}" ]]; then
   echo "[ERROR] BindCraft 工作目录不存在: ${MODEL_WORKDIR}"

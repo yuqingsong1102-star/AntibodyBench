@@ -1,0 +1,7 @@
+target.target_name='8vzo_C_A'
+target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8vzo.pdb'
+target.target_chain='A'
+target.binder_chain='B'
+target.target_hotspots='A142,A143,A144,A147,A148,A151,A154,A348,A352,A353,A355,A356,A359,A360,A361,A362,A363,A366,A420,A422,A474,A477,A478,A481,A482,A485,A486,A487'
+target.hotspot_residue=null
+af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

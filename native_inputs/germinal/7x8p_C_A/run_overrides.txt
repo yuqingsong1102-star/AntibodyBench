@@ -1,0 +1,7 @@
+target.target_name='7x8p_C_A'
+target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7x8p.pdb'
+target.target_chain='A'
+target.binder_chain='C'
+target.target_hotspots='A51,A52,A90,A99,A101,A102,A103,A107,A144,A145,A146,A147,A149,A150,A151,A152,A153'
+target.hotspot_residue=null
+af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

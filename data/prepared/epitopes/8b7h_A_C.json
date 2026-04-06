@@ -1,0 +1,29 @@
+{
+  "sample_id": "8b7h_A_C",
+  "pdb_id": "8b7h",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8b7h.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8b7h.pdb",
+  "antigen_chain": "C",
+  "antigen_chain_requested": "C",
+  "antigen_chain_used": "A",
+  "antibody_chain_requested": "A",
+  "antibody_chain_used": "H",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "fallback_antigen_chain:C->A;fallback_antibody_chain:A->H;contact_residues=10",
+  "hotspot_count": 10,
+  "hotspot_residues": [
+    "C125",
+    "C126",
+    "C127",
+    "C128",
+    "C129",
+    "C130",
+    "C148",
+    "C153",
+    "C154",
+    "C158"
+  ],
+  "hotspot_string": "C125,C126,C127,C128,C129,C130,C148,C153,C154,C158",
+  "target_pdb_repaired": true
+}

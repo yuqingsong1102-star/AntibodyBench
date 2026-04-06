@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "8slb_C_A",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8slb.pdb",
+  "chains": "A",
+  "target_hotspot_residues": "A12,A13,A14,A15,A16,A17,A18,A48,A70,A71,A74,A75,A78,A81,A82,A83,A84,A85,A86,A88,A89,A98,A99,A100,A101,A102,A105,A234,A238",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

@@ -1,0 +1,28 @@
+{
+  "sample_id": "8qz3_C_A",
+  "pdb_id": "8qz3",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8qz3.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8qz3.pdb",
+  "antigen_chain": "A",
+  "antigen_chain_requested": "A",
+  "antigen_chain_used": "A",
+  "antibody_chain_requested": "C",
+  "antibody_chain_used": "E",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "fallback_antibody_chain:C->E;contact_residues=9",
+  "hotspot_count": 9,
+  "hotspot_residues": [
+    "A107",
+    "A108",
+    "A109",
+    "A110",
+    "A112",
+    "A113",
+    "A116",
+    "A119",
+    "A120"
+  ],
+  "hotspot_string": "A107,A108,A109,A110,A112,A113,A116,A119,A120",
+  "target_pdb_repaired": true
+}

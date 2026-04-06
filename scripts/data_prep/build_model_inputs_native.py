@@ -19,11 +19,52 @@ def _write_text(path: Path, text: str) -> None:
   path.write_text(text, encoding="utf-8")
 
 
-def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path) -> list[Path]:
+def _read_json(path: Path) -> dict:
+  if not path.exists():
+    return {}
+  try:
+    return json.loads(path.read_text(encoding="utf-8"))
+  except Exception:
+    return {}
+
+
+def _has_af_params(path: Path) -> bool:
+  if not path.exists() or not path.is_dir():
+    return False
+  return any(path.glob("params_model_*.npz"))
+
+
+def _resolve_germinal_af_params_dir(models_root: Path) -> Path:
+  candidates = [
+    models_root / "germinal" / "params",
+    models_root / "BindCraft" / "params",
+  ]
+  for candidate in candidates:
+    if _has_af_params(candidate):
+      return candidate
+  return candidates[0]
+
+
+def _get_hotspots(epitope: dict, antigen_chain: str, *, allow_placeholder: bool) -> str | None:
+  hotspot_string = _safe(str(epitope.get("hotspot_string") or ""))
+  hotspot_count = int(epitope.get("hotspot_count") or 0)
+  if _safe(str(epitope.get("status") or "")) == "ok" and hotspot_count > 0 and hotspot_string:
+    return hotspot_string
+  if not allow_placeholder:
+    return None
+  return f"{antigen_chain}__FILL_ME__"
+
+
+def _get_binder_chain(row: dict[str, str], epitope: dict) -> str:
+  return _safe(str(epitope.get("antibody_chain_used") or row.get("antibody_chain") or "B")) or "B"
+
+
+def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
   sample_id = _safe(row.get("sample_id", "sample"))
   antigen_chain = _safe(row.get("antigen_chain", "A"))
   target_pdb = _safe(row.get("reference_structure_path", ""))
   framework_default = models_root / "RFantibody" / "scripts" / "examples" / "example_inputs" / "h-NbBCII10.pdb"
+  hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=True) or f"{antigen_chain}__FILL_ME__"
 
   files: list[Path] = []
   cfg = sample_dir / "rfantibody_config.env"
@@ -34,7 +75,7 @@ def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path) 
         f'SAMPLE_ID="{sample_id}"',
         f'TARGET_PDB="{target_pdb}"',
         f'FRAMEWORK_PDB="{framework_default}"',
-        f'HOTSPOTS="{antigen_chain}__FILL_ME__"',
+        f'HOTSPOTS="{hotspots}"',
         'DESIGN_LOOPS="H1:7,H2:6,H3:5-13"',
         "NUM_DESIGNS=10",
         "NUM_SEQS=4",
@@ -47,12 +88,12 @@ def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path) 
   return files
 
 
-def _build_germinal(sample_dir: Path, row: dict[str, str]) -> list[Path]:
+def _build_germinal(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
   target_pdb = _safe(row.get("reference_structure_path", ""))
   antigen_chain = _safe(row.get("antigen_chain", "A"))
-  # Germinal convention: binder_chain is usually B in target config.
-  # Here we preserve dataset value and leave hotspots placeholder.
-  binder_chain = _safe(row.get("antibody_chain", "B"))
+  binder_chain = _get_binder_chain(row, epitope)
+  hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=True) or f"{antigen_chain}__FILL_ME__"
+  af_params_dir = _resolve_germinal_af_params_dir(models_root)
   sample_id = _safe(row.get("sample_id", "sample"))
 
   files: list[Path] = []
@@ -65,7 +106,7 @@ def _build_germinal(sample_dir: Path, row: dict[str, str]) -> list[Path]:
         f'target_pdb_path: "{target_pdb}"',
         f'target_chain: "{antigen_chain}"',
         f'binder_chain: "{binder_chain}"',
-        f'target_hotspots: "{antigen_chain}__FILL_ME__"',
+        f'target_hotspots: "{hotspots}"',
         "",
       ]
     ),
@@ -77,10 +118,13 @@ def _build_germinal(sample_dir: Path, row: dict[str, str]) -> list[Path]:
     overrides,
     "\n".join(
       [
+        f"target.target_name='{sample_id}'",
         f"target.target_pdb_path='{target_pdb}'",
         f"target.target_chain='{antigen_chain}'",
         f"target.binder_chain='{binder_chain}'",
-        f"target.target_hotspots='{antigen_chain}__FILL_ME__'",
+        f"target.target_hotspots='{hotspots}'",
+        "target.hotspot_residue=null",
+        f"af_params_dir='{af_params_dir}'",
         "",
       ]
     ),
@@ -89,19 +133,20 @@ def _build_germinal(sample_dir: Path, row: dict[str, str]) -> list[Path]:
   return files
 
 
-def _build_bindcraft(sample_dir: Path, row: dict[str, str]) -> list[Path]:
+def _build_bindcraft(sample_dir: Path, row: dict[str, str], epitope: dict) -> list[Path]:
   sample_id = _safe(row.get("sample_id", "sample"))
   target_pdb = _safe(row.get("reference_structure_path", ""))
   antigen_chain = _safe(row.get("antigen_chain", "A"))
+  hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=False)
 
   files: list[Path] = []
   settings = sample_dir / "settings_target.json"
   payload = {
-    "design_path": str((sample_dir / "designs").resolve()),
+    "design_path": "__OUTPUT_DIR__/designs",
     "binder_name": sample_id,
     "starting_pdb": target_pdb,
     "chains": antigen_chain,
-    "target_hotspot_residues": None,  # Fill with e.g. "A37,A39,A41"
+    "target_hotspot_residues": hotspots,
     "lengths": [20, 35],
     "number_of_final_designs": 10,
   }
@@ -110,7 +155,7 @@ def _build_bindcraft(sample_dir: Path, row: dict[str, str]) -> list[Path]:
   return files
 
 
-def _build_boltzgen(sample_dir: Path, row: dict[str, str], models_root: Path) -> list[Path]:
+def _build_boltzgen(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
   target_path = _safe(row.get("reference_structure_path", ""))
   antigen_chain = _safe(row.get("antigen_chain", "A"))
   # Use bundled scaffold examples from boltzgen repo as a starting point.
@@ -118,6 +163,7 @@ def _build_boltzgen(sample_dir: Path, row: dict[str, str], models_root: Path) ->
     models_root / "boltzgen" / "example" / "nanobody_scaffolds" / "7eow.yaml",
     models_root / "boltzgen" / "example" / "nanobody_scaffolds" / "7xl0.yaml",
   ]
+  hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=False)
 
   files: list[Path] = []
   yaml_path = sample_dir / "design_spec.yaml"
@@ -136,6 +182,7 @@ def _build_boltzgen(sample_dir: Path, row: dict[str, str], models_root: Path) ->
   lines += [
     "",
     "# Optional: add hotspot-focused constraints / include-exclude masks per boltzgen examples.",
+    f'# target_hotspots_from_epitopes: "{hotspots or ""}"',
     "",
   ]
   _write_text(yaml_path, "\n".join(lines))
@@ -148,13 +195,13 @@ def main() -> int:
   parser.add_argument(
     "--dataset-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "inputs" / "dataset_index_ready.csv",
+    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "dataset_index_ready.csv",
     help="Input benchmark index CSV.",
   )
   parser.add_argument(
     "--out-root",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "model_inputs_native",
+    default=Path(__file__).resolve().parents[2] / "native_inputs",
     help="Output root for native input templates.",
   )
   parser.add_argument(
@@ -162,6 +209,12 @@ def main() -> int:
     type=Path,
     default=Path(__file__).resolve().parents[3] / "models",
     help="Root path of original model repositories.",
+  )
+  parser.add_argument(
+    "--epitope-dir",
+    type=Path,
+    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "epitopes",
+    help="Directory of per-sample epitope json files.",
   )
   args = parser.parse_args()
 
@@ -178,19 +231,20 @@ def main() -> int:
     sample_id = _safe(row.get("sample_id", ""))
     if not sample_id:
       continue
+    epitope = _read_json(args.epitope_dir / f"{sample_id}.json")
 
     for model in MODELS:
       sample_dir = args.out_root / model / sample_id
       sample_dir.mkdir(parents=True, exist_ok=True)
 
       if model == "RFantibody":
-        files = _build_rfantibody(sample_dir, row, args.models_root)
+        files = _build_rfantibody(sample_dir, row, args.models_root, epitope)
       elif model == "germinal":
-        files = _build_germinal(sample_dir, row)
+        files = _build_germinal(sample_dir, row, args.models_root, epitope)
       elif model == "BindCraft":
-        files = _build_bindcraft(sample_dir, row)
+        files = _build_bindcraft(sample_dir, row, epitope)
       elif model == "boltzgen":
-        files = _build_boltzgen(sample_dir, row, args.models_root)
+        files = _build_boltzgen(sample_dir, row, args.models_root, epitope)
       else:
         files = []
 

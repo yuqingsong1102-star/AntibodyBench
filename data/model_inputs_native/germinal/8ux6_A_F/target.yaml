@@ -1,5 +1,0 @@
-target_name: "8ux6_A_F"
-target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8ux6.pdb"
-target_chain: "F"
-binder_chain: "A"
-target_hotspots: "F__FILL_ME__"

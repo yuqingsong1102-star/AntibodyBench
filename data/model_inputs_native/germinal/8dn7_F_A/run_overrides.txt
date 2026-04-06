@@ -1,4 +1,0 @@
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8dn7.pdb'
-target.target_chain='A'
-target.binder_chain='F'
-target.target_hotspots='A38,A40,A42,A46,A47,A48,A49,A50,A53,A58,A60,A62,A63,A98,A102,A104,A106,A107,A108,A109,A110,A111,A112,A113,A114,A115,A116,A117,A118,A119,A120,A121,A138,A139,A140,A141,A142,A151,A152,A153,A154,A155,A157,A159,A180,A181,A182,A183,A184,A185,A186,A187,A188,A195,A197,A199,A231'

@@ -4,7 +4,7 @@ set -uo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 MODEL_NAME=""
-INPUT_ROOT="${ROOT_DIR}/data/model_inputs_native"
+INPUT_ROOT="${ROOT_DIR}/native_inputs"
 OUT_ROOT="${ROOT_DIR}/outputs/native_predictions"
 MAX_SAMPLES=1
 SAMPLE_ID=""
@@ -17,7 +17,7 @@ usage() {
 
 选项:
   --model <name>            必填，模型名（大小写按目录名）
-  --input-root <path>       原生输入根目录（默认: data/model_inputs_native）
+  --input-root <path>       原生输入根目录（默认: native_inputs）
   --out-root <path>         输出根目录（默认: outputs/native_predictions）
   --max-samples <N>         最多处理样本数（默认: 1，0 表示不限制）
   --sample-id <id>          仅运行指定样本（会忽略 --max-samples）
@@ -95,7 +95,7 @@ fi
 MODEL_INPUT_DIR="${INPUT_ROOT}/${MODEL_NAME}"
 MODEL_OUT_DIR="${OUT_ROOT}/${MODEL_NAME}"
 RUNNER_DIR="${ROOT_DIR}/scripts/native_runners"
-COLLECTOR="${RUNNER_DIR}/collect_top1.py"
+COLLECTOR="${RUNNER_DIR}/collect_candidates.py"
 
 case "${MODEL_NAME}" in
   RFantibody) RUNNER="${RUNNER_DIR}/rfantibody.sh" ;;
@@ -119,58 +119,7 @@ fi
 
 mkdir -p "${MODEL_OUT_DIR}"
 MANIFEST_PATH="${MODEL_OUT_DIR}/manifest.csv"
-if [[ ! -f "${MANIFEST_PATH}" ]]; then
-  printf "sample_id,status,structure_path,sequence_path,meta_path,duration_sec,error_summary\n" > "${MANIFEST_PATH}"
-fi
-
-append_manifest() {
-  local sample_id="$1"
-  local status="$2"
-  local structure_path="$3"
-  local sequence_path="$4"
-  local meta_path="$5"
-  local duration_sec="$6"
-  local error_summary="$7"
-
-  SAMPLE_ID_VAL="${sample_id}" \
-  STATUS_VAL="${status}" \
-  STRUCTURE_PATH_VAL="${structure_path}" \
-  SEQUENCE_PATH_VAL="${sequence_path}" \
-  META_PATH_VAL="${meta_path}" \
-  DURATION_SEC_VAL="${duration_sec}" \
-  ERROR_SUMMARY_VAL="${error_summary}" \
-  MANIFEST_PATH_VAL="${MANIFEST_PATH}" \
-  python3 - <<'PY'
-import csv
-import os
-from pathlib import Path
-
-manifest = Path(os.environ["MANIFEST_PATH_VAL"])
-row = {
-  "sample_id": os.environ["SAMPLE_ID_VAL"],
-  "status": os.environ["STATUS_VAL"],
-  "structure_path": os.environ["STRUCTURE_PATH_VAL"],
-  "sequence_path": os.environ["SEQUENCE_PATH_VAL"],
-  "meta_path": os.environ["META_PATH_VAL"],
-  "duration_sec": os.environ["DURATION_SEC_VAL"],
-  "error_summary": os.environ["ERROR_SUMMARY_VAL"],
-}
-with manifest.open("a", encoding="utf-8", newline="") as f:
-  writer = csv.DictWriter(
-    f,
-    fieldnames=[
-      "sample_id",
-      "status",
-      "structure_path",
-      "sequence_path",
-      "meta_path",
-      "duration_sec",
-      "error_summary",
-    ],
-  )
-  writer.writerow(row)
-PY
-}
+python3 "${COLLECTOR}" --print-fieldnames > "${MANIFEST_PATH}"
 
 collect_field() {
   local meta_path="$1"
@@ -238,10 +187,12 @@ overall_exit=0
 for sid in "${SAMPLE_IDS[@]}"; do
   sample_input_dir="${MODEL_INPUT_DIR}/${sid}"
   sample_out_dir="${MODEL_OUT_DIR}/${sid}"
+  rm -rf "${sample_out_dir}"
   mkdir -p "${sample_out_dir}"
   stdout_log="${sample_out_dir}/run_stdout.log"
   stderr_log="${sample_out_dir}/run_stderr.log"
-  meta_path="${sample_out_dir}/top1_meta.json"
+  run_meta_path="${sample_out_dir}/run_meta.json"
+  candidate_manifest_path="${sample_out_dir}/candidate_manifest.csv"
 
   echo "[INFO] 运行样本: ${sid}"
   start_epoch="$(date +%s)"
@@ -261,31 +212,38 @@ for sid in "${SAMPLE_IDS[@]}"; do
     --sample-id "${sid}" \
     --sample-input-dir "${sample_input_dir}" \
     --sample-output-dir "${sample_out_dir}" \
-    --runner-exit-code "${runner_exit}"; then
-    echo "[WARN] collect_top1 异常: ${sid}"
+    --project-root "${ROOT_DIR}" \
+    --runner-exit-code "${runner_exit}" \
+    --duration-sec "$(( $(date +%s) - start_epoch ))"; then
+    echo "[WARN] collect_candidates 异常: ${sid}"
   fi
 
   end_epoch="$(date +%s)"
   duration="$((end_epoch - start_epoch))"
-  status="$(collect_field "${meta_path}" "status")"
-  structure_path="$(collect_field "${meta_path}" "top1_structure")"
-  sequence_path="$(collect_field "${meta_path}" "top1_sequence")"
-  error_summary="$(collect_field "${meta_path}" "error_summary")"
+  status="$(collect_field "${run_meta_path}" "status")"
+  error_summary="$(collect_field "${run_meta_path}" "error_summary")"
+  n_candidates="$(collect_field "${run_meta_path}" "n_candidates")"
   if [[ -z "${status}" ]]; then
     status="failed"
   fi
 
-  append_manifest "${sid}" "${status}" "${structure_path}" "${sequence_path}" "${meta_path}" "${duration}" "${error_summary}"
+  if [[ -f "${candidate_manifest_path}" ]]; then
+    tail -n +2 "${candidate_manifest_path}" >> "${MANIFEST_PATH}"
+  fi
 
-  if [[ "${status}" == "failed" ]]; then
+  if [[ -z "${n_candidates}" ]]; then
+    n_candidates="0"
+  fi
+
+  if [[ "${status}" == "failed" || "${status}" == "partial" ]]; then
     overall_exit=1
-    echo "[WARN] 样本失败: ${sid} (${error_summary:-unknown_error})"
+    echo "[WARN] 样本未完全成功: ${sid} (candidates=${n_candidates}; ${error_summary:-unknown_error})"
     if [[ "${CONTINUE_ON_ERROR}" == "0" ]]; then
       echo "[ERROR] 因 --continue-on-error=0，提前终止。"
       break
     fi
   else
-    echo "[OK] 样本完成: ${sid}"
+    echo "[OK] 样本完成: ${sid} (candidates=${n_candidates})"
   fi
 done
 

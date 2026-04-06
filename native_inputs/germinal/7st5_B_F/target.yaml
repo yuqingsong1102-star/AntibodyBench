@@ -1,0 +1,5 @@
+target_name: "7st5_B_F"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7st5.pdb"
+target_chain: "F"
+binder_chain: "h"
+target_hotspots: "F31,F32,F33,F34,F35,F52,F53,F66,F67,F68,F69,F95,F96,F97,F98,F101,F102,F104"

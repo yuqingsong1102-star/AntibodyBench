@@ -1,0 +1,12 @@
+{
+  "design_path": "__OUTPUT_DIR__/designs",
+  "binder_name": "8q6r_A_D",
+  "starting_pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8q6r.pdb",
+  "chains": "D",
+  "target_hotspot_residues": "D313,D315,D353,D354,D355,D356,D357,D358,D359,D360,D361,D362,D363,D364,D365,D366,D367",
+  "lengths": [
+    20,
+    35
+  ],
+  "number_of_final_designs": 10
+}

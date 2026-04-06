@@ -1,0 +1,5 @@
+target_name: "8qf4_A_B"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8qf4.pdb"
+target_chain: "B"
+binder_chain: "E"
+target_hotspots: "B211,B212,B213,B214,B215,B216,B217,B219,B220,B222,B223,B224,B226,B227,B228,B229,B230,B231,B244,B245,B246,B247,B250,B251,B271,B274,B275"

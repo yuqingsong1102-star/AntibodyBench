@@ -1,0 +1,5 @@
+target_name: "8aok_B_A"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8aok.pdb"
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: "A54,A56,A58,A59,A60,A61,A63,A66,A68,A73,A76,A110,A111,A112,A113,A115,A117,A120,A121,A122,A123,A124,A125"

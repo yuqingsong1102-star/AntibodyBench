@@ -1,0 +1,23 @@
+{
+  "sample_id": "8ath_F_A",
+  "pdb_id": "8ath",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8ath.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8ath.pdb",
+  "antigen_chain": "A",
+  "antigen_chain_requested": "A",
+  "antigen_chain_used": "A",
+  "antibody_chain_requested": "F",
+  "antibody_chain_used": "L",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "fallback_antibody_chain:F->L;contact_residues=4",
+  "hotspot_count": 4,
+  "hotspot_residues": [
+    "A109",
+    "A151",
+    "A186",
+    "A187"
+  ],
+  "hotspot_string": "A109,A151,A186,A187",
+  "target_pdb_repaired": false
+}

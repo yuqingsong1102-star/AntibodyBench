@@ -1,0 +1,25 @@
+{
+  "sample_id": "8vyl_F_C",
+  "pdb_id": "8vyl",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/reference_complexes/8vyl.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8vyl.pdb",
+  "antigen_chain": "C",
+  "antigen_chain_requested": "C",
+  "antigen_chain_used": "C",
+  "antibody_chain_requested": "F",
+  "antibody_chain_used": "F",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "",
+  "hotspot_count": 6,
+  "hotspot_residues": [
+    "C110",
+    "C111",
+    "C112",
+    "C114",
+    "C115",
+    "C118"
+  ],
+  "hotspot_string": "C110,C111,C112,C114,C115,C118",
+  "target_pdb_repaired": false
+}

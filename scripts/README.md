@@ -3,6 +3,7 @@
 ## Native inference entry
 
 `scripts/run.sh` 已改为**原生推理编排入口**，不再执行 preprocess/postprocess/aggregate 的三阶段评测流程。
+新的输出契约不再压成 Top-1，而是保留**候选清单**。
 
 ### 用法
 
@@ -13,7 +14,7 @@ bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [options]
 参数说明：
 
 - `--model`：必填，模型名。
-- `--input-root`：原生输入根目录，默认 `data/model_inputs_native`。
+- `--input-root`：原生输入根目录，默认 `native_inputs`。
 - `--out-root`：输出根目录，默认 `outputs/native_predictions`。
 - `--max-samples`：最多处理样本数，默认 `1`（即默认 smoke_1）。
 - `--sample-id`：仅运行一个样本（会忽略 `--max-samples`）。
@@ -23,7 +24,7 @@ bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [options]
 
 仅从以下目录读取样本输入，不再依赖适配层 `outputs/input`：
 
-`data/model_inputs_native/<model>/<sample_id>/`
+`native_inputs/<model>/<sample_id>/`
 
 ### 运行器
 
@@ -33,7 +34,9 @@ bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [options]
 - `germinal.sh`
 - `bindcraft.sh`
 - `boltzgen.sh`
-- `collect_top1.py`（统一 Top-1 抽取）
+- `collect_candidates.py`（统一候选清单抽取）
+
+旧的 `collect_top1.py` 已移到 `scripts/legacy/collect_top1.py`，仅作为旧流程备份，不再属于正式主流程。
 
 ### 输出契约
 
@@ -43,9 +46,9 @@ bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [options]
 
 最小交付文件：
 
-- `top1_structure.(pdb|cif)`
-- `top1_sequence.fasta`
-- `top1_meta.json`
+- `candidate_manifest.csv`
+- `run_meta.json`
+- `native_run/`（原始模型输出，不做 Top-1 抽取）
 - `run_stdout.log`
 - `run_stderr.log`
 
@@ -53,21 +56,36 @@ bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [options]
 
 - `outputs/native_predictions/<model>/manifest.csv`
 
-`manifest.csv` 字段：
+`candidate_manifest.csv` 与模型级 `manifest.csv` 使用同一字段集合，核心字段如下：
 
+- `candidate_id`
 - `sample_id`
+- `model`
+- `candidate_rank`
+- `candidate_name`
 - `status`
-- `structure_path`
 - `sequence_path`
+- `structure_path`
 - `meta_path`
 - `duration_sec`
 - `error_summary`
+- `source_stage`
+- `native_score_name`
+- `native_score_value`
+
+说明：
+
+- `sequence_path` 指向每个候选自己的序列文件；如果模型原始输出只有 CSV 序列列，抽取器会生成标准化 FASTA sidecar。
+- `structure_path` 是可选字段；没有结构也允许保留候选。
+- `meta_path` 指向每个候选的元数据 JSON，而不是样本级 Top-1 元数据。
+- `manifest.csv` 每次运行都会**覆盖重写**，不再向旧结果追加。
 
 ### 失败与可追溯
 
 - 单样本失败默认不中断后续样本（`--continue-on-error 1`）。
 - 外部命令标准输出/错误分别写入 `run_stdout.log` / `run_stderr.log`。
-- 即使运行环境不完整，也会产出 `top1_meta.json` 和 `manifest.csv` 失败记录。
+- 即使运行环境不完整，也会产出 `candidate_manifest.csv`、`run_meta.json` 和模型级 `manifest.csv` 的失败记录。
+- 不再在 scripts 层做 Top-1 选择，也不再从结构反推序列补全候选。
 
 ### 最小验证（每个模型 1 个样本）
 
@@ -84,7 +102,7 @@ bash scripts/run.sh --model boltzgen --sample-id "${SAMPLE_ID}" --out-root "${OU
 检查这两个文件是否存在：
 
 - `outputs/native_predictions_smoke/<model>/manifest.csv`
-- `outputs/native_predictions_smoke/<model>/<sample_id>/top1_meta.json`
+- `outputs/native_predictions_smoke/<model>/<sample_id>/candidate_manifest.csv`
 
 ### 每个模型怎么跑（环境变量 + 命令模板）
 
@@ -148,6 +166,8 @@ bash scripts/run.sh --model germinal --sample-id 8q3j_B_A
 
 默认会执行内置命令；你也可以用 `BINDCRAFT_CMD` 覆盖。
 
+默认 runner 会把 `settings_target.json` 中的 `design_path` 在运行时重写到 `__OUTPUT_DIR__/designs` 对应的真实 sample 输出目录，避免候选结构落回输入目录。
+
 可用占位符：
 
 - `__SAMPLE_ID__`
@@ -200,37 +220,34 @@ bash scripts/run.sh --model boltzgen --sample-id 8q3j_B_A
 
 ## Data preparation
 
-- `scripts/data_prep/generate_dataset_index.py`
-- `scripts/data_prep/fetch_reference_complexes.py`
-- `scripts/data_prep/fill_cdr_h3_from_anarci.py`
-- `scripts/data_prep/build_model_inputs.py`
-- `scripts/data_prep/build_model_inputs_native.py`
+当前 data_prep 主流程只保留 3 个脚本：
+
+- `scripts/data_prep/prepare_native_inputs.py`
+	- 一键入口：从 `data/raw/dataset_index.csv` 出发，补齐 full complex、生成 ready 索引、抽取 epitope，并产出四模型原生输入。
+	- 默认写入 `data/prepared/dataset_index_ready.csv`、`data/prepared/epitopes/` 和 `native_inputs/`。
 - `scripts/data_prep/extract_epitopes_from_complexes.py`
-- `scripts/data_prep/apply_epitopes_to_native_inputs.py`
+	- 读取 `data/prepared/dataset_index_ready.csv`，为每个样本生成 `data/prepared/epitopes/<sample_id>.json`。
+	- 当 full complex 链名与数据集链名不一致时，会按接触关系、链类型与 CDR3 风格自动回退到更合理的链映射。
+	- 可配合 `--repair-target-pdbs`，把缺失或空壳的 `reference_structure_path` 目标链从 full complex 反抽重建。
+- `scripts/data_prep/build_model_inputs_native.py`
+	- 直接读取 `data/prepared/dataset_index_ready.csv` 与 `data/prepared/epitopes/<sample_id>.json`，一次生成四个模型的 native 输入。
+	- 默认输出到 `native_inputs/<model>/<sample_id>/`，并刷新 `native_inputs/_native_manifest.csv`。
 
 ## Ops
 
-- `scripts/ops/build_apptainer_images.sh`
+- `scripts/build_apptainer_images.sh`
 
 ## Legacy / utility
 
-- `scripts/prepare_antibody_dataset.py`
+- `scripts/legacy/collect_top1.py`
 
-## Evaluation (Track B)
+## Evaluation
 
-评估分析主入口已迁移到 `evaluation/` 目录，建议使用一键命令：
+一键评估（Phase1，见 `evaluation/README.md`）：
 
 ```bash
-python -m evaluation.pipeline.run_eval_pipeline
+python -m evaluation.pipeline.run_eval_pipeline --fallback-to-source-structure
 ```
 
-默认产物：
-
-- `outputs/evaluation/all_models/evaluation_long.csv`
-- `outputs/evaluation/all_models/summary_by_model.csv`
-- `outputs/evaluation/all_models/summary_by_sample.csv`
-- `outputs/evaluation/all_models/figures/*`
-- `outputs/evaluation/all_models/report.md`
-
-详细说明见：`evaluation/README.md`
+默认产物目录：`outputs/evaluation/external_binding_benchmark/`（含 `external_eval_*.csv`、`report.md`、`figures/`、`judge_inputs/`）。
 
