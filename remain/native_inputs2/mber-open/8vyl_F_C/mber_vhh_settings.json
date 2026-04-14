@@ -1,0 +1,32 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8vyl.pdb",
+    "name": "8vyl_F_C",
+    "chains": "C",
+    "hotspots": [
+      "C110",
+      "C111",
+      "C112",
+      "C114",
+      "C115",
+      "C118"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

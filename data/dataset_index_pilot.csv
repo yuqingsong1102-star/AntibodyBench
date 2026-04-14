@@ -1,0 +1,4 @@
+PDB ID,interface_chain_id_1,interface_chain_id_2,interface_chain_type_1,interface_chain_type_2,antibody_chain,antigen_chain,antigen_name,antigen_type,antigen_length,note
+8dtn-assembly1,A,B,protein,protein,A,B,BCL11A ZF6,人源锌指蛋白ZF6结构域,35,ZF6锌指结构域（短片段）
+8hxq-assembly1,A,B,protein,protein,A,B,BCMA ECD,人源B细胞成熟抗原胞外域,54,残基1-54（短ECD）
+8qf4-assembly1,A,B,protein,protein,A,B,Arc-NL,人源Arc蛋白N-lobe,71,残基207-277（N-lobe结构域）

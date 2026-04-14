@@ -1,0 +1,23 @@
+# ── Benchmark configuration ──────────────────────────────────────────────
+# benchmark_2_common_k：每个模型每个靶点取多少个候选进入统一评估
+k_common: 10
+
+# benchmark_1_hits（post-eval）中判断"命中"的阈值
+# 所有阈值取 AND 关系（均满足才算 hit）
+hit_thresholds:
+  chai1_iptm: 0.5          # Chai-1 iPTM ≥ 0.5
+  pdockq2: 0.23            # pDockQ2 ≥ 0.23
+  # 注：sequence_developability 阈值暂不加入 hit 判断，仅用于分层分析
+
+# benchmark_1_runtime 统计哪些模型
+models:
+  - boltzgen
+  - mber_open
+  - germinal
+  - rfantibody
+
+# 运行元数据 JSON 文件名（在每个 outputs/runs/<model>/<target_id>/ 下）
+run_meta_filename: run_meta.json
+
+# done 标记文件名（支持断点续跑）
+done_filename: .done

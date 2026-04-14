@@ -1,0 +1,39 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/7yv1.pdb",
+    "name": "7yv1_C_A",
+    "chains": "A",
+    "hotspots": [
+      "A21",
+      "A25",
+      "A27",
+      "A28",
+      "A29",
+      "A30",
+      "A31",
+      "A32",
+      "A33",
+      "A34",
+      "A36",
+      "A38",
+      "A40"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

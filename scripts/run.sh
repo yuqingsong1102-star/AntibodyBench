@@ -8,12 +8,13 @@ INPUT_ROOT="${ROOT_DIR}/native_inputs"
 OUT_ROOT="${ROOT_DIR}/outputs/native_predictions"
 MAX_SAMPLES=1
 SAMPLE_ID=""
+SAMPLE_LIST=""
 CONTINUE_ON_ERROR=1
 
 usage() {
   cat <<'EOF'
 用法:
-  bash scripts/run.sh --model <RFantibody|germinal|BindCraft|boltzgen> [选项]
+  bash scripts/run.sh --model <RFantibody|germinal|mber-open|boltzgen> [选项]
 
 选项:
   --model <name>            必填，模型名（大小写按目录名）
@@ -21,6 +22,7 @@ usage() {
   --out-root <path>         输出根目录（默认: outputs/native_predictions）
   --max-samples <N>         最多处理样本数（默认: 1，0 表示不限制）
   --sample-id <id>          仅运行指定样本（会忽略 --max-samples）
+  --sample-list <file>      从文件读取样本 ID 列表（每行一个）
   --continue-on-error <0|1> 单样本失败是否继续（默认: 1）
   -h, --help                显示帮助
 EOF
@@ -31,7 +33,7 @@ normalize_model() {
   case "${raw}" in
     RFantibody|rfantibody|RFANTIBODY) echo "RFantibody" ;;
     germinal|GERMINAL) echo "germinal" ;;
-    BindCraft|bindcraft|BINDCRAFT) echo "BindCraft" ;;
+    mber-open|MBER-OPEN|mber_open|MBER_OPEN|mber|MBER) echo "mber-open" ;;
     boltzgen|BOLTZGEN|BoltzGen) echo "boltzgen" ;;
     *) return 1 ;;
   esac
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --sample-id)
       SAMPLE_ID="$2"
+      shift 2
+      ;;
+    --sample-list)
+      SAMPLE_LIST="$2"
       shift 2
       ;;
     --continue-on-error)
@@ -100,7 +106,7 @@ COLLECTOR="${RUNNER_DIR}/collect_candidates.py"
 case "${MODEL_NAME}" in
   RFantibody) RUNNER="${RUNNER_DIR}/rfantibody.sh" ;;
   germinal) RUNNER="${RUNNER_DIR}/germinal.sh" ;;
-  BindCraft) RUNNER="${RUNNER_DIR}/bindcraft.sh" ;;
+  mber-open) RUNNER="${RUNNER_DIR}/mber_open.sh" ;;
   boltzgen) RUNNER="${RUNNER_DIR}/boltzgen.sh" ;;
 esac
 
@@ -153,6 +159,19 @@ if [[ -n "${SAMPLE_ID}" ]]; then
     exit 1
   fi
   SAMPLE_IDS=("${SAMPLE_ID}")
+elif [[ -n "${SAMPLE_LIST}" ]]; then
+  if [[ ! -f "${SAMPLE_LIST}" ]]; then
+    echo "[ERROR] 样本列表文件不存在: ${SAMPLE_LIST}"
+    exit 1
+  fi
+  while IFS= read -r sid; do
+    [[ -z "${sid}" || "${sid}" == \#* ]] && continue
+    if [[ ! -d "${MODEL_INPUT_DIR}/${sid}" ]]; then
+      echo "[WARN] 跳过不存在的样本: ${sid}"
+      continue
+    fi
+    SAMPLE_IDS+=("${sid}")
+  done < "${SAMPLE_LIST}"
 else
   while IFS= read -r sid; do
     SAMPLE_IDS+=("${sid}")

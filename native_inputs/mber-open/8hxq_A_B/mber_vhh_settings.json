@@ -1,0 +1,31 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8hxq.pdb",
+    "name": "8hxq_A_B",
+    "chains": "B",
+    "hotspots": [
+      "B44",
+      "B59",
+      "B62",
+      "B63",
+      "B105"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

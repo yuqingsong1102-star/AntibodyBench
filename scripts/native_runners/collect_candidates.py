@@ -301,117 +301,75 @@ def _build_record(
   }
 
 
-def _resolve_bindcraft_design_root(native_root: Path, sample_input_dir: Path | None) -> Path | None:
-  candidates = [native_root / "designs"]
-  runtime_settings = native_root / "runtime_inputs" / "settings_target.runtime.json"
-  input_settings = sample_input_dir / "settings_target.json" if sample_input_dir else None
-  for settings_path in (runtime_settings, input_settings):
-    if settings_path is None or not settings_path.exists():
-      continue
-    payload = _read_json(settings_path)
-    design_path = Path(str(payload.get("design_path") or "").strip()) if payload.get("design_path") else None
-    if design_path is not None:
-      candidates.append(design_path)
-  candidates.append(native_root)
-  for candidate in candidates:
-    if candidate.exists():
-      if (candidate / "trajectory_stats.csv").exists() or (candidate / "mpnn_design_stats.csv").exists() or (candidate / "final_design_stats.csv").exists():
-        return candidate
-  return None
-
-
-def _resolve_bindcraft_structure(design_root: Path, design_name: str, stage: str) -> Path | None:
-  patterns: list[str]
-  if stage == "accepted":
-    patterns = [
-      f"Accepted/Ranked/*{design_name}*.pdb",
-      f"Accepted/*{design_name}*.pdb",
-      f"MPNN/Relaxed/*{design_name}*.pdb",
-      f"Trajectory/Relaxed/*{design_name}*.pdb",
-      f"Trajectory/*{design_name}*.pdb",
-    ]
-  elif stage == "mpnn":
-    patterns = [
-      f"MPNN/Relaxed/*{design_name}*.pdb",
-      f"MPNN/Binder/*{design_name}*.pdb",
-      f"Trajectory/Relaxed/*{design_name}*.pdb",
-      f"Trajectory/*{design_name}*.pdb",
-    ]
-  else:
-    patterns = [
-      f"Trajectory/Relaxed/*{design_name}*.pdb",
-      f"Trajectory/*{design_name}*.pdb",
-    ]
-  return _glob_first(design_root, patterns)
-
-
-def _collect_bindcraft(sample_id: str, native_root: Path, sample_input_dir: Path | None, sample_output_dir: Path, project_root: Path, duration_sec: str) -> list[dict[str, str]]:
-  design_root = _resolve_bindcraft_design_root(native_root, sample_input_dir)
-  if design_root is None:
+def _collect_mber_open(sample_id: str, native_root: Path, sample_output_dir: Path, project_root: Path, duration_sec: str) -> list[dict[str, str]]:
+  accepted_csv = native_root / "accepted.csv"
+  rows = _read_csv_rows(accepted_csv)
+  if not rows:
     return []
 
-  rows: list[dict[str, str]] = []
-  seen_names: set[str] = set()
+  ordered_rows = _sort_rows(rows, rank_field_names=[], score_field_names=["i_ptm", "plddt", "ptm"])
+  out: list[dict[str, str]] = []
   next_rank = 1
-  stage_specs = [
-    ("accepted", design_root / "final_design_stats.csv"),
-    ("mpnn", design_root / "mpnn_design_stats.csv"),
-    ("trajectory", design_root / "trajectory_stats.csv"),
-  ]
-  for stage, csv_path in stage_specs:
-    raw_rows = _read_csv_rows(csv_path)
-    if not raw_rows:
-      continue
-    ordered_rows = _sort_rows(raw_rows, rank_field_names=["Rank"], score_field_names=["Average_i_pTM", "i_pTM", "Average_pLDDT", "pLDDT"])
-    for source_row_idx, row in ordered_rows:
-      design_name = (row.get("Design") or row.get("design_name") or "").strip()
-      if not design_name:
-        design_name = f"bindcraft_{stage}_{source_row_idx}"
-      if design_name in seen_names:
+  for source_row_idx, row in ordered_rows:
+    trajectory_name = (row.get("trajectory_name") or f"trajectory_{source_row_idx}").strip()
+    binder_index = (row.get("binder_index") or str(source_row_idx)).strip()
+    candidate_name = f"{trajectory_name}_binder-{binder_index}"
+    sequence, sequence_field = _extract_sequence_from_row(row, preferred_fields=["binder_seq", "sequence"])
+
+    structure_path = None
+    structure_field = ""
+    for field in ["relaxed_pdb_path", "complex_pdb_path"]:
+      value = (row.get(field) or "").strip()
+      if not value:
         continue
-      seen_names.add(design_name)
-      sequence, sequence_field = _extract_sequence_from_row(row, preferred_fields=["Sequence", "binder_sequence", "sequence"])
-      structure_path = _resolve_bindcraft_structure(design_root, design_name, stage)
-      score_name, score_value = _pick_native_score(row, ["Average_i_pTM", "i_pTM", "Average_pLDDT", "pLDDT"])
-      notes: list[str] = []
-      if not sequence:
-        notes.append("missing_sequence_in_csv")
-      if structure_path is None:
-        notes.append("missing_structure_path")
-      rank_text = (row.get("Rank") or "").strip()
-      if rank_text:
-        try:
-          candidate_rank = int(float(rank_text))
-        except ValueError:
-          candidate_rank = next_rank
-      else:
-        candidate_rank = next_rank
-      next_rank = max(next_rank, candidate_rank + 1)
-      rows.append(
-        _build_record(
-          project_root=project_root,
-          sample_output_dir=sample_output_dir,
-          sample_id=sample_id,
-          model="BindCraft",
-          candidate_rank=candidate_rank,
-          candidate_name=design_name,
-          sequence=sequence,
-          structure_path=structure_path,
-          duration_sec=duration_sec,
-          source_stage=stage,
-          source_name=design_name,
-          source_csv_path=csv_path,
-          source_row_idx=source_row_idx,
-          source_sequence_field=sequence_field,
-          source_structure_field="glob_structure",
-          native_score_name=score_name,
-          native_score_value=score_value,
-          error_summary="missing_candidate_artifacts" if not sequence and structure_path is None else "",
-          notes=notes,
-          raw_row=row,
-        )
+      structure_path = _resolve_candidate_path(value, accepted_csv.parent, [native_root, native_root / "Accepted"])
+      if structure_path is not None:
+        structure_field = field
+        break
+    if structure_path is None:
+      structure_path = _glob_first(
+        native_root,
+        [
+          f"Accepted/*{trajectory_name}_binder-{binder_index}_*relaxed.pdb",
+          f"Accepted/*{trajectory_name}_binder-{binder_index}_*complex.pdb",
+        ],
       )
-  return sorted(rows, key=lambda row: (int(row["candidate_rank"]), row["candidate_name"]))
+      if structure_path is not None:
+        structure_field = "glob_structure"
+
+    score_name, score_value = _pick_native_score(row, ["i_ptm", "plddt", "ptm"])
+    notes: list[str] = []
+    if not sequence:
+      notes.append("missing_sequence_in_csv")
+    if structure_path is None:
+      notes.append("missing_structure_path")
+
+    out.append(
+      _build_record(
+        project_root=project_root,
+        sample_output_dir=sample_output_dir,
+        sample_id=sample_id,
+        model="mber-open",
+        candidate_rank=next_rank,
+        candidate_name=candidate_name,
+        sequence=sequence,
+        structure_path=structure_path,
+        duration_sec=duration_sec,
+        source_stage="accepted",
+        source_name=trajectory_name,
+        source_csv_path=accepted_csv,
+        source_row_idx=source_row_idx,
+        source_sequence_field=sequence_field,
+        source_structure_field=structure_field,
+        native_score_name=score_name,
+        native_score_value=score_value,
+        error_summary="missing_candidate_artifacts" if not sequence and structure_path is None else "",
+        notes=notes,
+        raw_row=row,
+      )
+    )
+    next_rank += 1
+  return out
 
 
 def _resolve_boltzgen_structure(native_root: Path, file_name: str) -> Path | None:
@@ -797,8 +755,8 @@ def collect_candidates(
     records = _collect_boltzgen(sample_id, native_root, sample_output_dir, project_root, duration_sec)
   elif model_key == "germinal":
     records = _collect_germinal(sample_id, native_root, sample_output_dir, project_root, duration_sec)
-  elif model_key == "BindCraft":
-    records = _collect_bindcraft(sample_id, native_root, sample_input_dir, sample_output_dir, project_root, duration_sec)
+  elif model_key == "mber-open":
+    records = _collect_mber_open(sample_id, native_root, sample_output_dir, project_root, duration_sec)
   elif model_key == "RFantibody":
     records = _collect_rfantibody(sample_id, native_root, sample_output_dir, project_root, duration_sec)
   else:

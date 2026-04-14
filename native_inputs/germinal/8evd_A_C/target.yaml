@@ -1,5 +1,0 @@
-target_name: "8evd_A_C"
-target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8evd.pdb"
-target_chain: "C"
-binder_chain: "A"
-target_hotspots: "C129,C153,C155,C164,C165,C168,C169,C170,C172,C173,C174,C175,C177,C178,C205,C206,C207,C208,C209,C211,C267,C268,C269,C270,C271,C272,C273,C275,C293,C294,C295,C297"

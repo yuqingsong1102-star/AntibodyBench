@@ -1,0 +1,24 @@
+# ── Dataset configuration ─────────────────────────────────────────────────
+# dataset_index.csv 的路径（相对于项目根目录）
+dataset_index: data/dataset_index.csv
+
+# 原始 PDB 存放目录（相对于项目根目录）
+pdb_dir: data/pdbs
+
+# 表位 JSON 存放目录
+epitope_dir: data/epitopes
+
+# 大抗原裁剪规则
+cropping:
+  # 抗原残基数超过此阈值才做裁剪
+  length_threshold: 300
+  # 以表位中心为原点，保留周围多少埃以内的残基
+  radius_angstrom: 12.0
+  # 规则版本号，会写入 Target.crop_rule_version，确保所有模型用同一份裁剪结果
+  rule_version: "v1_radius12A"
+
+# 裁剪后结构存放目录（相对于 outputs/）
+cropped_dir: data_prep/cropped
+
+# 标准化后的靶点准备记录（相对于 outputs/）
+prepared_index: data_prep/targets_prepared.csv

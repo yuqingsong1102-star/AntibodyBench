@@ -1,0 +1,44 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8sfz.pdb",
+    "name": "8sfz_A_D",
+    "chains": "D",
+    "hotspots": [
+      "D81",
+      "D151",
+      "D152",
+      "D153",
+      "D154",
+      "D156",
+      "D162",
+      "D163",
+      "D164",
+      "D182",
+      "D197",
+      "D198",
+      "D199",
+      "D200",
+      "D228",
+      "D229",
+      "D230",
+      "D231"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

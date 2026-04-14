@@ -1,0 +1,30 @@
+{
+  "sample_id": "8vyl_F_A",
+  "pdb_id": "8vyl",
+  "reference_complex_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/complexes/8vyl.pdb",
+  "reference_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8vyl.pdb",
+  "design_structure_path": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8vyl.pdb",
+  "design_structure_source": "reference_structure_path",
+  "design_structure_note": "crop_skipped_small_target:137",
+  "antigen_chain": "A",
+  "antigen_chain_requested": "A",
+  "antigen_chain_used": "A",
+  "antibody_chain_requested": "F",
+  "antibody_chain_used": "E",
+  "cutoff_angstrom": 5.0,
+  "status": "ok",
+  "note": "fallback_antibody_chain:F->E;contact_residues=5",
+  "hotspot_count": 5,
+  "hotspot_residues": [
+    "A110",
+    "A111",
+    "A112",
+    "A114",
+    "A115"
+  ],
+  "hotspot_string": "A110,A111,A112,A114,A115",
+  "target_pdb_repaired": false,
+  "target_cropped": false,
+  "target_residue_count": 137,
+  "design_residue_count": 137
+}

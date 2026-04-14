@@ -1,0 +1,34 @@
+# ── Evaluation configuration ─────────────────────────────────────────────
+# 默认运行哪些步骤（1~4 均可单独关闭）
+steps: [1, 2, 3, 4]
+
+# 计算设备
+device: "cuda:0"
+
+step1_python: "conda run -n chai python"
+default_python: "/home/yqsong/enter/bin/python"
+
+# Step 1: structure confidence (Chai-1)
+structure_confidence:
+  judge: chai1              # 目前只支持 chai1
+  n_seeds: 5               # 每个候选运行多少个 seed
+
+# Step 2: interface geometry
+interface_geometry:
+  use_pyrosetta: false      # 是否启用 PyRosetta ddG（需要额外安装）
+
+# Step 3: sequence developability
+sequence_developability:
+  enabled: true
+
+# Step 4: diversity + epitope coverage
+diversity_epitope:
+  enabled: true
+  identity_threshold: 0.8  # 序列一致性 ≥ 此值视为同一 cluster
+
+# 评估输入：从哪个 CSV 读取候选列表
+# 可被 CLI 覆盖（--candidates-csv）
+candidates_csv: outputs/benchmark/benchmark_2_k10.csv
+
+# 评估输出目录（相对于项目根）
+out_dir: outputs/evaluation

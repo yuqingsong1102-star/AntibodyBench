@@ -14,10 +14,10 @@ READY_FIELDS = [
   "sample_id",
   "pdb_id",
   "reference_structure_path",
+  "design_structure_path",
+  "design_structure_source",
   "antigen_chain",
   "antibody_chain",
-  "cdr_h3_start",
-  "cdr_h3_end",
   "reference_complex_path",
   "reference_complex_status",
   "reference_complex_note",
@@ -62,25 +62,10 @@ def _load_rows(path: Path) -> list[dict[str, str]]:
     return list(csv.DictReader(f))
 
 
-def _load_existing_h3(path: Path) -> dict[str, tuple[str, str]]:
-  if not path.exists():
-    return {}
-  out: dict[str, tuple[str, str]] = {}
-  for row in _load_rows(path):
-    sample_id = _safe(row.get("sample_id", ""))
-    if not sample_id:
-      continue
-    out[sample_id] = (
-      _safe(row.get("cdr_h3_start", "")),
-      _safe(row.get("cdr_h3_end", "")),
-    )
-  return out
-
-
-def _build_base_rows(raw_index: Path, reference_pdb_dir: Path, existing_h3: dict[str, tuple[str, str]]) -> list[dict[str, str]]:
+def _build_base_rows(raw_index: Path, reference_pdb_dir: Path) -> list[dict[str, str]]:
   base_rows: list[dict[str, str]] = []
   for raw_row in _load_rows(raw_index):
-    raw_pdb_id = _safe(raw_row.get("pdb_id", ""))
+    raw_pdb_id = _safe(raw_row.get("pdb_id", "") or raw_row.get("PDB ID", ""))
     antibody_chain = _safe(raw_row.get("antibody_chain", ""))
     antigen_chain = _safe(raw_row.get("antigen_chain", ""))
     if not raw_pdb_id or not antibody_chain or not antigen_chain:
@@ -88,16 +73,15 @@ def _build_base_rows(raw_index: Path, reference_pdb_dir: Path, existing_h3: dict
 
     pdb_id = _base_pdb_id(raw_pdb_id)
     sample_id = f"{pdb_id}_{antibody_chain}_{antigen_chain}"
-    cdr_h3_start, cdr_h3_end = existing_h3.get(sample_id, ("", ""))
     base_rows.append(
       {
         "sample_id": sample_id,
         "pdb_id": pdb_id,
         "reference_structure_path": str((reference_pdb_dir / f"{pdb_id}.pdb").resolve()),
+        "design_structure_path": str((reference_pdb_dir / f"{pdb_id}.pdb").resolve()),
+        "design_structure_source": "reference_structure_path",
         "antigen_chain": antigen_chain,
         "antibody_chain": antibody_chain,
-        "cdr_h3_start": cdr_h3_start,
-        "cdr_h3_end": cdr_h3_end,
         "reference_complex_path": "",
         "reference_complex_status": "",
         "reference_complex_note": "",
@@ -185,7 +169,7 @@ def _select_ready_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
 def _keep_rows_with_target_paths(rows: list[dict[str, str]]) -> list[dict[str, str]]:
   out: list[dict[str, str]] = []
   for row in rows:
-    target_path = Path(_safe(row.get("reference_structure_path", "")))
+    target_path = Path(_safe(row.get("design_structure_path", "")) or _safe(row.get("reference_structure_path", "")))
     if _is_nonempty_file(target_path):
       out.append(row)
   return out
@@ -196,31 +180,31 @@ def main() -> int:
   parser.add_argument(
     "--raw-index",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "raw" / "dataset_index.csv",
-    help="Source dataset index in data/raw/.",
+    default=Path(__file__).resolve().parents[2] / "data" / "dataset_index.csv",
+    help="Source dataset index CSV.",
   )
   parser.add_argument(
     "--reference-pdb-dir",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "raw" / "raw_pdbs",
-    help="Directory containing target/reference PDB files.",
+    default=Path(__file__).resolve().parents[2] / "data" / "pdbs",
+    help="Directory containing target/reference PDB files (auto-downloaded if missing).",
   )
   parser.add_argument(
     "--complex-dir",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "raw" / "reference_complexes",
+    default=Path(__file__).resolve().parents[2] / "data" / "complexes",
     help="Directory containing downloaded full complexes.",
   )
   parser.add_argument(
     "--ready-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "dataset_index_ready.csv",
+    default=Path(__file__).resolve().parents[2] / "data" / "dataset_index_ready.csv",
     help="Final ready index consumed by downstream build/run/eval scripts.",
   )
   parser.add_argument(
     "--epitope-dir",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "epitopes",
+    default=Path(__file__).resolve().parents[2] / "data" / "epitopes",
     help="Output directory for per-sample epitope JSON files.",
   )
   parser.add_argument(
@@ -252,6 +236,35 @@ def main() -> int:
     action="store_true",
     help="Disable target-chain repair from full complexes during epitope extraction.",
   )
+  parser.add_argument(
+    "--no-crop-targets",
+    action="store_true",
+    help="Disable automatic cropped design-target generation for large antigens.",
+  )
+  parser.add_argument(
+    "--cropped-target-dir",
+    type=Path,
+    default=Path(__file__).resolve().parents[2] / "data" / "cropped_targets",
+    help="Output directory for automatically cropped design targets.",
+  )
+  parser.add_argument(
+    "--crop-radius",
+    type=float,
+    default=18.0,
+    help="3D radius in Angstrom around hotspot residues to retain when cropping large targets.",
+  )
+  parser.add_argument(
+    "--crop-padding-residues",
+    type=int,
+    default=8,
+    help="Sequence padding to retain on each side of selected hotspot-neighbor residues.",
+  )
+  parser.add_argument(
+    "--crop-min-residues",
+    type=int,
+    default=350,
+    help="Only auto-crop targets whose antigen residue count exceeds this threshold.",
+  )
   args = parser.parse_args()
 
   repo_root = Path(__file__).resolve().parents[2]
@@ -259,8 +272,8 @@ def main() -> int:
   if not args.raw_index.exists():
     raise SystemExit(f"[ERROR] raw index not found: {args.raw_index}")
 
-  existing_h3 = _load_existing_h3(args.ready_csv)
-  rows = _build_base_rows(args.raw_index, args.reference_pdb_dir, existing_h3)
+  args.reference_pdb_dir.mkdir(parents=True, exist_ok=True)
+  rows = _build_base_rows(args.raw_index, args.reference_pdb_dir)
   ok_complexes, fail_complexes = _fill_reference_complex_paths(rows, args.complex_dir, args.timeout_sec)
 
   ready_rows = _select_ready_rows(rows)
@@ -280,6 +293,16 @@ def main() -> int:
   ]
   if not args.no_repair_target_pdbs:
     extract_args.append("--repair-target-pdbs")
+  if not args.no_crop_targets:
+    extract_args.extend(
+      [
+        "--crop-targets",
+        "--cropped-target-dir", str(args.cropped_target_dir),
+        "--crop-radius", str(args.crop_radius),
+        "--crop-padding-residues", str(args.crop_padding_residues),
+        "--crop-min-residues", str(args.crop_min_residues),
+      ]
+    )
   _run_python_step(data_prep_dir / "extract_epitopes_from_complexes.py", extract_args)
 
   repaired_ready_rows = _keep_rows_with_target_paths(_load_rows(args.ready_csv))

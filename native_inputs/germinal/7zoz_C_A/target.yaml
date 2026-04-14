@@ -1,5 +1,0 @@
-target_name: "7zoz_C_A"
-target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7zoz.pdb"
-target_chain: "A"
-binder_chain: "H"
-target_hotspots: "A50,A85,A86,A87,A88,A139,A141,A151,A157,A158,A159"

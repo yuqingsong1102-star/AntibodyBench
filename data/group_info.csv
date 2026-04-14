@@ -1,0 +1,5 @@
+group,size_range_aa,pdb_ids,count
+超小抗原(<100),10-71,"8DTN,8HXQ,8QF4",3
+小抗原(100-200),100-169,"8AV2,7XLD,7YV1,8BE3",4
+中等抗原(200-300),200-287,"8AOM,8EVD,8IDO,8SFZ,8VYL",5
+大抗原(>300),400-800,"7Z1X,7ZAU,8H63",3

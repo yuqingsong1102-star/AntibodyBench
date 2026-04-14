@@ -1,7 +1,0 @@
-target.target_name='8pyr_D_C'
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8pyr.pdb'
-target.target_chain='C'
-target.binder_chain='D'
-target.target_hotspots='C263,C264,C267,C268,C270,C272,C288,C289,C290'
-target.hotspot_residue=null
-af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

@@ -1,7 +1,0 @@
-target.target_name='8pih_B_A'
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8pih.pdb'
-target.target_chain='A'
-target.binder_chain='B'
-target.target_hotspots='A61,A64,A65,A68,A69,A72,A88,A95,A97,A99,A100,A106,A107,A109,A113,A114,A115,A116,A117,A118,A120,A124,A129,A130,A131,A132'
-target.hotspot_residue=null
-af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

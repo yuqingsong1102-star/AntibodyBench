@@ -1,0 +1,34 @@
+# ── BoltzGen model configuration ─────────────────────────────────────────
+name: boltzgen
+
+# conda 环境名
+conda_env: bg
+
+# 调用的 shell runner 脚本（相对于项目根）
+runner_script: scripts/native_runners/boltzgen.sh
+
+# 模型工作目录（可被环境变量 BOLTZGEN_WORKDIR 覆盖）
+workdir: /home/yqsong/projects/antibody_benchmark/models/boltzgen
+
+# 输入目录（相对于 native_inputs/）
+input_subdir: boltzgen
+
+# 输出根目录（相对于 outputs/runs/）
+output_subdir: boltzgen
+
+# 默认生成候选数（0 = 模型自带默认值，不强制指定）
+n_designs: 0
+
+# GPU 数量（用于 RunMetadata 记录）
+gpu_count: 1
+
+# 模型内部得分字段名（在模型输出 JSON 中）
+internal_score_field: boltz_confidence
+# 值越大越好：true；值越小越好：false
+internal_score_ascending: false
+
+# 候选序列/结构的查找 glob 模式（供 collection.py 使用）
+output_patterns:
+  sequence: ["**/*.fasta", "**/*.fa", "**/*.seq"]
+  structure: ["**/*.pdb", "**/*.cif"]
+  meta: ["**/design_*.json", "**/result.json"]

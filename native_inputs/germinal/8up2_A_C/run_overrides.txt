@@ -1,7 +1,0 @@
-target.target_name='8up2_A_C'
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8up2.pdb'
-target.target_chain='C'
-target.binder_chain='A'
-target.target_hotspots='C21,C22,C23,C24,C25,C26,C27,C32,C33,C55,C61,C62,C67,C137'
-target.hotspot_residue=null
-af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

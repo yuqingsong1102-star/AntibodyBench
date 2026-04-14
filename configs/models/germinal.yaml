@@ -1,0 +1,25 @@
+# ── Germinal model configuration ─────────────────────────────────────────
+name: germinal
+
+conda_env: germinal
+
+runner_script: scripts/native_runners/germinal.sh
+
+workdir: /home/yqsong/projects/antibody_benchmark/models/germinal
+
+input_subdir: germinal
+
+output_subdir: germinal
+
+n_designs: 0
+
+gpu_count: 1
+
+internal_score_field: ablm_ll
+internal_score_ascending: false
+
+output_patterns:
+  sequence: []                                      # germinal 无直接 FASTA 输出，序列从 PDB 提取
+  structure: ["**/trajectories/structures/*.pdb",
+              "**/accepted/structures/*.pdb"]
+  meta: ["**/plots/*_metrics.csv"]                   # per-trajectory 得分文件

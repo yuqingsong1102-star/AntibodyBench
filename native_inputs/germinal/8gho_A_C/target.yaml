@@ -1,5 +1,0 @@
-target_name: "8gho_A_C"
-target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8gho.pdb"
-target_chain: "C"
-binder_chain: "A"
-target_hotspots: "C73,C74,C75,C76,C78,C79,C80,C82,C83,C86"

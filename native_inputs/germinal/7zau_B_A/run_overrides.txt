@@ -1,7 +1,0 @@
-target.target_name='7zau_B_A'
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/7zau.pdb'
-target.target_chain='A'
-target.binder_chain='B'
-target.target_hotspots='A155,A156,A157,A160,A161,A173,A174,A191,A192,A193,A194,A204,A286,A287,A288,A289,A379,A380,A381,A384,A415,A416,A417,A418,A424,A426,A428,A432,A447,A448'
-target.hotspot_residue=null
-af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

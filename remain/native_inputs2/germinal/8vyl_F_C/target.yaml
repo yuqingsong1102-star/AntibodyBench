@@ -1,0 +1,5 @@
+target_name: "8vyl_F_C"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8vyl.pdb"
+target_chain: "C"
+binder_chain: "B"
+target_hotspots: "C110,C111,C112,C114,C115,C118"

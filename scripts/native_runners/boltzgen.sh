@@ -32,13 +32,21 @@ CONDA_ENV="${BOLTZGEN_CONDA_ENV:-bg}"
 USE_CONDA_RUN="${BOLTZGEN_USE_CONDA_RUN:-1}"
 # Default to single GPU to avoid distributed communication failures
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-PROTOCOL="${BOLTZGEN_PROTOCOL:-protein-anything}"
+export HF_HOME="${BOLTZGEN_HF_HOME:-${HOME}/.cache/huggingface}"
+export HF_ENDPOINT="${BOLTZGEN_HF_ENDPOINT:-${HF_ENDPOINT:-https://hf-mirror.com}}"
+export HF_HUB_ENABLE_HF_TRANSFER="${BOLTZGEN_HF_HUB_ENABLE_HF_TRANSFER:-1}"
+NVRTC_LIB_DIRS="${BOLTZGEN_NVRTC_LIB_DIRS:-${CONDA_PREFIX:-}/lib:${HOME}/enter/envs/bg/lib/python3.11/site-packages/nvidia/cu13/lib:${HOME}/enter/envs/bg/lib/python3.11/site-packages/nvidia/cuda_nvrtc/lib}"
+export LD_LIBRARY_PATH="${NVRTC_LIB_DIRS}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+PROTOCOL="${BOLTZGEN_PROTOCOL:-nanobody-anything}"
 NUM_DESIGNS="${BOLTZGEN_NUM_DESIGNS:-2}"
 BUDGET="${BOLTZGEN_BUDGET:-1}"
+REUSE="${BOLTZGEN_REUSE:-1}"
 NATIVE_OUT_DIR="$(cd "$(dirname "${SAMPLE_OUTPUT_DIR}")" && pwd)/$(basename "${SAMPLE_OUTPUT_DIR}")/native_run"
 mkdir -p "${NATIVE_OUT_DIR}"
 
-default_cmd="boltzgen run \"${SPEC_FILE}\" --output \"${NATIVE_OUT_DIR}\" --protocol \"${PROTOCOL}\" --num_designs ${NUM_DESIGNS} --budget ${BUDGET}"
+REUSE_FLAG=""
+[[ "${REUSE}" == "1" ]] && REUSE_FLAG="--reuse"
+default_cmd="boltzgen run \"${SPEC_FILE}\" --output \"${NATIVE_OUT_DIR}\" --protocol \"${PROTOCOL}\" --num_designs ${NUM_DESIGNS} --budget ${BUDGET} ${REUSE_FLAG}"
 CMD_TEMPLATE="${BOLTZGEN_CMD:-${default_cmd}}"
 cmd="${CMD_TEMPLATE//__SAMPLE_ID__/${SAMPLE_ID}}"
 cmd="${cmd//__INPUT_DIR__/${SAMPLE_INPUT_DIR}}"
@@ -56,12 +64,12 @@ fi
 if [[ "${USE_CONDA_RUN}" == "1" ]] && command -v conda >/dev/null 2>&1; then
   (
     cd "${MODEL_WORKDIR}"
-    conda run -n "${CONDA_ENV}" bash -lc "${cmd}"
+    conda run -n "${CONDA_ENV}" bash -lc "export HF_HOME='${HF_HOME}' HF_ENDPOINT='${HF_ENDPOINT}' HF_HUB_ENABLE_HF_TRANSFER='${HF_HUB_ENABLE_HF_TRANSFER}' LD_LIBRARY_PATH='${LD_LIBRARY_PATH}' && ${cmd}"
   )
 else
   (
     cd "${MODEL_WORKDIR}"
-    bash -lc "${cmd}"
+    bash -lc "export HF_HOME='${HF_HOME}' HF_ENDPOINT='${HF_ENDPOINT}' HF_HUB_ENABLE_HF_TRANSFER='${HF_HUB_ENABLE_HF_TRANSFER}' LD_LIBRARY_PATH='${LD_LIBRARY_PATH}' && ${cmd}"
   )
 fi
 

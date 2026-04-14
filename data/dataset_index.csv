@@ -1,0 +1,18 @@
+PDB ID,interface_chain_id_1,interface_chain_id_2,interface_chain_type_1,interface_chain_type_2,antibody_chain,antigen_chain,antigen_name,antigen_type,antigen_length,note
+7xld-assembly1,A,B,protein,protein,B,A,IsdH NEAT3,细菌铁转运蛋白结构域,126,残基539-664（NEAT3结构域）
+7yv1-assembly1,A,B,protein,protein,B,A,K-Ras G12D,人源GTPase突变体,169,GDP结合态
+7yv1-assembly1,A,C,protein,protein,C,A,K-Ras G12D,人源GTPase突变体,169,GDP结合态
+7z1x-assembly1,A,B,protein,protein,B,A,Gasdermin D,人源焦亡执行蛋白,484,全长
+7zau-assembly1,A,B,protein,protein,B,A,Fascin-1,人源肌动蛋白束集蛋白,493,全长
+8aom-assembly1,A,B,protein,protein,B,A,PD-L1 D1D2,人源免疫检查点蛋白胞外域,218,残基18-235（D1D2结构域）
+8av2-assembly1,A,C,protein,protein,C,A,LEP-R FnIII,小鼠瘦素受体FnIII模块,100,纤连蛋白III型结构域（估算）
+8be3-assembly1,A,B,protein,protein,A,B,KRasG12V,人源GTPase突变体,169,与纳米抗体84复合
+8dtn-assembly1,A,B,protein,protein,A,B,BCL11A ZF6,人源锌指蛋白ZF6结构域,35,ZF6锌指结构域（短片段）
+8evd-assembly1,A,C,protein,protein,A,C,PA14 Cif,绿脓杆菌毒力因子,220,与纳米抗体VHH101复合
+8h63-assembly1,A,B,protein,protein,B,A,Internalin A,单核细胞增生李斯特菌侵袭蛋白,800,与VHH10复合（实际解析约400-500残基）
+8hxq-assembly1,A,B,protein,protein,A,B,BCMA ECD,人源B细胞成熟抗原胞外域,54,残基1-54（短ECD）
+8ido-assembly1,A,D,protein,protein,D,A,MERS-CoV RBD,中东呼吸综合征冠状病毒RBD,220,与VHH-T148复合
+8qf4-assembly1,A,B,protein,protein,A,B,Arc-NL,人源Arc蛋白N-lobe,71,残基207-277（N-lobe结构域）
+8sfz-assembly1,A,D,protein,protein,A,D,GFP,绿色荧光蛋白,238,全长GFP与LaG35纳米抗体复合
+8vyl-assembly1,A,F,protein,protein,F,A,血红蛋白,人源血红蛋白,287,α亚基141+β亚基146（异源二聚体）
+8vyl-assembly1,C,F,protein,protein,F,C,血红蛋白,人源血红蛋白,287,α亚基141+β亚基146（异源二聚体）

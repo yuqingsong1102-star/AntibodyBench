@@ -7,7 +7,12 @@ import json
 from pathlib import Path
 
 
-MODELS = ("RFantibody", "germinal", "boltzgen", "BindCraft")
+MODELS = ("RFantibody", "germinal", "boltzgen", "mber-open")
+
+DEFAULT_MBER_MASKED_VHH = (
+  "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********"
+  "NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+)
 
 
 def _safe(s: str) -> str:
@@ -35,10 +40,7 @@ def _has_af_params(path: Path) -> bool:
 
 
 def _resolve_germinal_af_params_dir(models_root: Path) -> Path:
-  candidates = [
-    models_root / "germinal" / "params",
-    models_root / "BindCraft" / "params",
-  ]
+  candidates = [models_root / "germinal" / "params"]
   for candidate in candidates:
     if _has_af_params(candidate):
       return candidate
@@ -55,14 +57,37 @@ def _get_hotspots(epitope: dict, antigen_chain: str, *, allow_placeholder: bool)
   return f"{antigen_chain}__FILL_ME__"
 
 
-def _get_binder_chain(row: dict[str, str], epitope: dict) -> str:
-  return _safe(str(epitope.get("antibody_chain_used") or row.get("antibody_chain") or "B")) or "B"
+def _split_chains(chain_field: str) -> list[str]:
+  raw = _safe(chain_field)
+  if not raw:
+    return []
+  for sep in (";", ",", " "):
+    if sep in raw:
+      return [part.strip() for part in raw.split(sep) if part.strip()]
+  return [raw]
+
+
+def _pick_designed_binder_chain(row: dict[str, str]) -> str:
+  antigen_chains = set(_split_chains(_safe(row.get("antigen_chain", ""))))
+  preferred = ["B", "H", "L", "C", "D", "E", "F", "G", "I", "J", "K", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "A"]
+  for chain_id in preferred:
+    if chain_id not in antigen_chains:
+      return chain_id
+  return "B"
+
+
+def _get_target_pdb(row: dict[str, str], epitope: dict) -> str:
+  return (
+    _safe(str(row.get("design_structure_path") or ""))
+    or _safe(str(epitope.get("design_structure_path") or ""))
+    or _safe(str(row.get("reference_structure_path") or ""))
+  )
 
 
 def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
   sample_id = _safe(row.get("sample_id", "sample"))
   antigen_chain = _safe(row.get("antigen_chain", "A"))
-  target_pdb = _safe(row.get("reference_structure_path", ""))
+  target_pdb = _get_target_pdb(row, epitope)
   framework_default = models_root / "RFantibody" / "scripts" / "examples" / "example_inputs" / "h-NbBCII10.pdb"
   hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=True) or f"{antigen_chain}__FILL_ME__"
 
@@ -89,9 +114,9 @@ def _build_rfantibody(sample_dir: Path, row: dict[str, str], models_root: Path, 
 
 
 def _build_germinal(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
-  target_pdb = _safe(row.get("reference_structure_path", ""))
+  target_pdb = _get_target_pdb(row, epitope)
   antigen_chain = _safe(row.get("antigen_chain", "A"))
-  binder_chain = _get_binder_chain(row, epitope)
+  binder_chain = _pick_designed_binder_chain(row)
   hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=True) or f"{antigen_chain}__FILL_ME__"
   af_params_dir = _resolve_germinal_af_params_dir(models_root)
   sample_id = _safe(row.get("sample_id", "sample"))
@@ -133,22 +158,38 @@ def _build_germinal(sample_dir: Path, row: dict[str, str], models_root: Path, ep
   return files
 
 
-def _build_bindcraft(sample_dir: Path, row: dict[str, str], epitope: dict) -> list[Path]:
+def _build_mber_open(sample_dir: Path, row: dict[str, str], epitope: dict) -> list[Path]:
   sample_id = _safe(row.get("sample_id", "sample"))
-  target_pdb = _safe(row.get("reference_structure_path", ""))
+  target_pdb = _get_target_pdb(row, epitope)
   antigen_chain = _safe(row.get("antigen_chain", "A"))
   hotspots = _get_hotspots(epitope, antigen_chain, allow_placeholder=False)
 
   files: list[Path] = []
-  settings = sample_dir / "settings_target.json"
+  settings = sample_dir / "mber_vhh_settings.json"
   payload = {
-    "design_path": "__OUTPUT_DIR__/designs",
-    "binder_name": sample_id,
-    "starting_pdb": target_pdb,
-    "chains": antigen_chain,
-    "target_hotspot_residues": hotspots,
-    "lengths": [20, 35],
-    "number_of_final_designs": 10,
+    "output": {
+      "dir": "__OUTPUT_DIR__",
+      "skip_animations": True,
+      "skip_pickle": True,
+      "skip_png": True,
+    },
+    "target": {
+      "pdb": target_pdb,
+      "name": sample_id,
+      "chains": antigen_chain,
+      "hotspots": [part for part in (hotspots or "").split(",") if part],
+    },
+    "binder": {
+      "masked_sequence": DEFAULT_MBER_MASKED_VHH,
+    },
+    "stopping": {
+      "num_accepted": 3,
+      "max_trajectories": 50,
+    },
+    "filters": {
+      "min_iptm": 0.75,
+      "min_plddt": 0.70,
+    },
   }
   _write_text(settings, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
   files.append(settings)
@@ -156,7 +197,7 @@ def _build_bindcraft(sample_dir: Path, row: dict[str, str], epitope: dict) -> li
 
 
 def _build_boltzgen(sample_dir: Path, row: dict[str, str], models_root: Path, epitope: dict) -> list[Path]:
-  target_path = _safe(row.get("reference_structure_path", ""))
+  target_path = _get_target_pdb(row, epitope)
   antigen_chain = _safe(row.get("antigen_chain", "A"))
   # Use bundled scaffold examples from boltzgen repo as a starting point.
   scaffold_candidates = [
@@ -195,7 +236,7 @@ def main() -> int:
   parser.add_argument(
     "--dataset-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "dataset_index_ready.csv",
+    default=Path(__file__).resolve().parents[2] / "data" / "dataset_index_ready.csv",
     help="Input benchmark index CSV.",
   )
   parser.add_argument(
@@ -213,7 +254,7 @@ def main() -> int:
   parser.add_argument(
     "--epitope-dir",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "epitopes",
+    default=Path(__file__).resolve().parents[2] / "data" / "epitopes",
     help="Directory of per-sample epitope json files.",
   )
   args = parser.parse_args()
@@ -241,8 +282,8 @@ def main() -> int:
         files = _build_rfantibody(sample_dir, row, args.models_root, epitope)
       elif model == "germinal":
         files = _build_germinal(sample_dir, row, args.models_root, epitope)
-      elif model == "BindCraft":
-        files = _build_bindcraft(sample_dir, row, epitope)
+      elif model == "mber-open":
+        files = _build_mber_open(sample_dir, row, epitope)
       elif model == "boltzgen":
         files = _build_boltzgen(sample_dir, row, args.models_root, epitope)
       else:

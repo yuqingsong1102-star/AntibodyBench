@@ -1,0 +1,5 @@
+target_name: "8h63_B_A"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8h63.pdb"
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: "A85,A129,A151,A173,A215,A216,A237,A238,A259,A260,A261,A282,A283,A304,A305,A306,A326,A327,A347,A348,A365,A367,A369,A387,A388,A389,A409,A410,A411,A413,A414,A474,A485,A487"

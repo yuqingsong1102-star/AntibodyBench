@@ -1,0 +1,5 @@
+target_name: "7xld_B_A"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/7xld.pdb"
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: "A556,A557,A562,A563,A564,A565,A568,A593,A635,A637,A639,A640,A641,A642,A643,A644,A646,A648"

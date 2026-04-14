@@ -1,0 +1,26 @@
+# ── RFantibody model configuration ───────────────────────────────────────
+name: rfantibody
+
+# RFantibody 使用 venv 而非 conda
+conda_env: ""
+venv_path: /home/yqsong/projects/antibody_benchmark/models/RFantibody/.venv
+
+runner_script: scripts/native_runners/rfantibody.sh
+
+workdir: /home/yqsong/projects/antibody_benchmark/models/RFantibody
+
+input_subdir: RFantibody
+
+output_subdir: rfantibody
+
+n_designs: 0
+
+gpu_count: 1
+
+internal_score_field: rf_score
+internal_score_ascending: false
+
+output_patterns:
+  sequence: ["**/*.fasta", "**/*.fa", "**/*.seq"]
+  structure: ["**/*.pdb"]
+  meta: ["**/traj/*.pdb", "**/result.json"]

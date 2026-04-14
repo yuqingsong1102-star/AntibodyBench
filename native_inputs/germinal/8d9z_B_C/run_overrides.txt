@@ -1,7 +1,0 @@
-target.target_name='8d9z_B_C'
-target.target_pdb_path='/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/raw/raw_pdbs/8d9z.pdb'
-target.target_chain='C'
-target.binder_chain='B'
-target.target_hotspots='C6,C7,C8,C9,C24,C27,C29,C32,C33,C34,C35,C36,C37,C65'
-target.hotspot_residue=null
-af_params_dir='/home/yqsong/projects/antibody_benchmark/models/germinal/params'

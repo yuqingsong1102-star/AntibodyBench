@@ -17,6 +17,9 @@ env/
 # Benchmark outputs (large/generated)
 outputs/
 
+# Archived / deprecated content
+_archive/
+
 # OS / editor
 .DS_Store
 Thumbs.db

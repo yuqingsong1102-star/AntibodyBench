@@ -1,0 +1,2 @@
+sample_id,pdb_id,antibody_chain,antigen_chain,reference_complex_path,antigen_length
+7z1x_B_A,7z1x,B,A,data/complexes/7z1x.pdb,386

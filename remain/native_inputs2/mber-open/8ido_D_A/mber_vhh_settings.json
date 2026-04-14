@@ -1,0 +1,45 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8ido.pdb",
+    "name": "8ido_D_A",
+    "chains": "A",
+    "hotspots": [
+      "A381",
+      "A382",
+      "A383",
+      "A384",
+      "A385",
+      "A386",
+      "A389",
+      "A410",
+      "A413",
+      "A414",
+      "A416",
+      "A417",
+      "A418",
+      "A485",
+      "A487",
+      "A488",
+      "A489",
+      "A490",
+      "A587"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

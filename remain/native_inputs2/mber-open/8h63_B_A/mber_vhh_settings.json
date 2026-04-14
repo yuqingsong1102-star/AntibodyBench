@@ -1,0 +1,60 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8h63.pdb",
+    "name": "8h63_B_A",
+    "chains": "A",
+    "hotspots": [
+      "A85",
+      "A129",
+      "A151",
+      "A173",
+      "A215",
+      "A216",
+      "A237",
+      "A238",
+      "A259",
+      "A260",
+      "A261",
+      "A282",
+      "A283",
+      "A304",
+      "A305",
+      "A306",
+      "A326",
+      "A327",
+      "A347",
+      "A348",
+      "A365",
+      "A367",
+      "A369",
+      "A387",
+      "A388",
+      "A389",
+      "A409",
+      "A410",
+      "A411",
+      "A413",
+      "A414",
+      "A474",
+      "A485",
+      "A487"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

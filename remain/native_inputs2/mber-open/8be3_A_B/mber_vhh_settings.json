@@ -1,0 +1,43 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8be3.pdb",
+    "name": "8be3_A_B",
+    "chains": "B",
+    "hotspots": [
+      "B21",
+      "B24",
+      "B25",
+      "B27",
+      "B29",
+      "B30",
+      "B32",
+      "B33",
+      "B35",
+      "B36",
+      "B37",
+      "B38",
+      "B39",
+      "B40",
+      "B41",
+      "B43",
+      "B52"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

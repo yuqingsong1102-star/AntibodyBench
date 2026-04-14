@@ -36,6 +36,12 @@ class SampleResult:
   hotspot_count: int
   hotspots: list[str]
   target_pdb_repaired: bool
+  design_structure_path: str
+  design_structure_source: str
+  design_structure_note: str
+  target_cropped: bool
+  target_residue_count: int
+  design_residue_count: int
 
 
 def _parse_structure(path: Path):
@@ -237,20 +243,7 @@ def _has_valid_target_structure(target_path: Path, requested_chain: str) -> bool
   return False
 
 
-def _infer_requested_binder_kind(row: dict[str, str], requested_chain: str, chain_info: dict[str, ChainInfo]) -> str | None:
-  try:
-    start = int((row.get("cdr_h3_start") or "").strip())
-    end = int((row.get("cdr_h3_end") or "").strip())
-  except Exception:
-    start = None
-    end = None
-
-  if start is not None and end is not None:
-    if start <= 92 and end <= 100:
-      return "light"
-    if start >= 97 or end >= 103:
-      return "heavy"
-
+def _infer_requested_binder_kind(requested_chain: str, chain_info: dict[str, ChainInfo]) -> str | None:
   info = chain_info.get(requested_chain)
   if info and info.kind in BINDER_KINDS:
     return info.kind
@@ -467,18 +460,191 @@ def _extract_hotspots(model, antigen_chains: list[str], antibody_chain: str, out
   return out
 
 
+def _parse_hotspot_token(token: str) -> tuple[str, int, str] | None:
+  match = re.match(r"^(.*?)(-?\d+)([A-Za-z]?)$", (token or "").strip())
+  if not match:
+    return None
+  chain_id, resseq, icode = match.groups()
+  if not chain_id:
+    return None
+  return chain_id, int(resseq), icode.strip()
+
+
+def _residue_matches_token(residue, resseq: int, icode: str) -> bool:
+  _het, residue_num, residue_icode = residue.get_id()
+  return int(residue_num) == int(resseq) and str(residue_icode).strip() == icode
+
+
+def _protein_residues_for_chain(model, chain_id: str) -> list:
+  if chain_id not in model:
+    return []
+  return [residue for residue in model[chain_id].get_residues() if _is_protein_residue(residue)]
+
+
+def _count_target_residues(model, chain_ids: list[str]) -> int:
+  return sum(len(_protein_residues_for_chain(model, chain_id)) for chain_id in chain_ids if chain_id in model)
+
+
+def _select_crop_residues(
+  model,
+  antigen_chains: list[str],
+  hotspot_tokens: list[str],
+  crop_radius: float,
+  padding_residues: int,
+) -> tuple[dict[str, set[tuple]], int, str]:
+  residue_lists = {chain_id: _protein_residues_for_chain(model, chain_id) for chain_id in antigen_chains if chain_id in model}
+  hotspot_atoms = []
+  hotspot_hits: dict[str, set[tuple]] = {}
+
+  for token in hotspot_tokens:
+    parsed = _parse_hotspot_token(token)
+    if parsed is None:
+      continue
+    chain_id, resseq, icode = parsed
+    for residue in residue_lists.get(chain_id, []):
+      if _residue_matches_token(residue, resseq, icode):
+        hotspot_atoms.extend(list(residue.get_atoms()))
+        hotspot_hits.setdefault(chain_id, set()).add(residue.get_id())
+        break
+
+  if not hotspot_atoms:
+    return {}, 0, "crop_skipped_hotspots_not_found_in_target"
+
+  hotspot_ns = NeighborSearch(hotspot_atoms)
+  selected: dict[str, set[tuple]] = {}
+  for chain_id, residues in residue_lists.items():
+    selected_indices: set[int] = set()
+    for idx, residue in enumerate(residues):
+      if residue.get_id() in hotspot_hits.get(chain_id, set()):
+        selected_indices.add(idx)
+        continue
+      if any(hotspot_ns.search(atom.get_coord(), crop_radius, level="A") for atom in residue.get_atoms()):
+        selected_indices.add(idx)
+
+    if not selected_indices:
+      continue
+
+    if padding_residues > 0:
+      expanded: set[int] = set()
+      for idx in selected_indices:
+        expanded.update(range(max(0, idx - padding_residues), min(len(residues), idx + padding_residues + 1)))
+      selected_indices = expanded
+
+    selected[chain_id] = {residues[idx].get_id() for idx in sorted(selected_indices)}
+
+  selected_count = sum(len(ids) for ids in selected.values())
+  return selected, selected_count, ""
+
+
+def _write_cropped_target(target_path: Path, antigen_chains: list[str], selected_residue_ids: dict[str, set[tuple]], out_path: Path) -> None:
+  structure = _parse_structure(target_path)
+  model = next(iter(structure))
+
+  cropped_structure = Structure("cropped_target")
+  cropped_model = Model(0)
+  for chain_id in antigen_chains:
+    if chain_id not in model or not selected_residue_ids.get(chain_id):
+      continue
+    chain_copy = deepcopy(model[chain_id])
+    for residue in list(chain_copy):
+      if not _is_protein_residue(residue) or residue.get_id() not in selected_residue_ids[chain_id]:
+        chain_copy.detach_child(residue.id)
+    if any(_is_protein_residue(residue) for residue in chain_copy.get_residues()):
+      cropped_model.add(chain_copy)
+
+  cropped_structure.add(cropped_model)
+  out_path.parent.mkdir(parents=True, exist_ok=True)
+  io = PDBIO()
+  io.set_structure(cropped_structure)
+  io.save(str(out_path))
+
+
+def _prepare_design_structure(
+  *,
+  sample_id: str,
+  target_path: Path | None,
+  antigen_chains: list[str],
+  hotspot_tokens: list[str],
+  crop_targets: bool,
+  cropped_target_dir: Path,
+  crop_radius: float,
+  crop_padding_residues: int,
+  crop_min_residues: int,
+) -> tuple[str, str, str, bool, int, int]:
+  default_path = str(target_path) if target_path is not None else ""
+  if target_path is None or not target_path.exists():
+    return default_path, "reference_structure_path", "design_target_missing", False, 0, 0
+
+  try:
+    structure = _parse_structure(target_path)
+    model = next(iter(structure))
+  except Exception as exc:
+    return default_path, "reference_structure_path", f"design_target_parse_failed:{type(exc).__name__}", False, 0, 0
+
+  active_antigen_chains = [chain_id for chain_id in antigen_chains if chain_id in model]
+  if not active_antigen_chains:
+    active_antigen_chains = _list_available_chains(model)
+
+  total_residues = _count_target_residues(model, active_antigen_chains)
+  if not crop_targets:
+    return default_path, "reference_structure_path", "crop_disabled", False, total_residues, total_residues
+  if total_residues <= crop_min_residues:
+    return default_path, "reference_structure_path", f"crop_skipped_small_target:{total_residues}", False, total_residues, total_residues
+  if not hotspot_tokens:
+    return default_path, "reference_structure_path", "crop_skipped_no_hotspots", False, total_residues, total_residues
+
+  selected_residue_ids, selected_count, selection_note = _select_crop_residues(
+    model,
+    active_antigen_chains,
+    hotspot_tokens,
+    crop_radius=crop_radius,
+    padding_residues=crop_padding_residues,
+  )
+  if selection_note:
+    return default_path, "reference_structure_path", selection_note, False, total_residues, total_residues
+  if selected_count <= 0:
+    return default_path, "reference_structure_path", "crop_skipped_empty_selection", False, total_residues, total_residues
+  if selected_count >= total_residues or selected_count * 10 >= total_residues * 9:
+    return default_path, "reference_structure_path", f"crop_skipped_not_effective:selected={selected_count};total={total_residues}", False, total_residues, total_residues
+
+  out_path = cropped_target_dir / f"{sample_id}.pdb"
+  try:
+    _write_cropped_target(target_path, active_antigen_chains, selected_residue_ids, out_path)
+  except Exception as exc:
+    return default_path, "reference_structure_path", f"crop_failed:{type(exc).__name__}", False, total_residues, total_residues
+  if not out_path.exists() or out_path.stat().st_size <= 20:
+    return default_path, "reference_structure_path", "crop_failed_empty_output", False, total_residues, total_residues
+
+  return (
+    str(out_path),
+    "cropped_target",
+    f"cropped_target:selected={selected_count};total={total_residues};radius={crop_radius};padding={crop_padding_residues}",
+    True,
+    total_residues,
+    selected_count,
+  )
+
+
+def _write_dataset_csv(path: Path, rows: list[dict[str, str]], fieldnames: list[str]) -> None:
+  with path.open("w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    for row in rows:
+      writer.writerow({field: str(row.get(field, "") or "") for field in fieldnames})
+
+
 def main() -> int:
   parser = argparse.ArgumentParser(description="Extract antigen interface hotspots from reference complexes.")
   parser.add_argument(
     "--dataset-csv",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "dataset_index_ready.csv",
+    default=Path(__file__).resolve().parents[2] / "data" / "dataset_index_ready.csv",
     help="Dataset CSV with sample_id/reference_complex_path/antigen_chain/antibody_chain.",
   )
   parser.add_argument(
     "--out-dir",
     type=Path,
-    default=Path(__file__).resolve().parents[2] / "data" / "prepared" / "epitopes",
+    default=Path(__file__).resolve().parents[2] / "data" / "epitopes",
     help="Output directory for per-sample epitope JSON files.",
   )
   parser.add_argument(
@@ -492,12 +658,49 @@ def main() -> int:
     action="store_true",
     help="When reference_structure_path is missing/empty, regenerate the target chain from reference_complex_path.",
   )
+  parser.add_argument(
+    "--crop-targets",
+    action="store_true",
+    help="Generate cropped design targets around hotspot neighborhoods for large antigens.",
+  )
+  parser.add_argument(
+    "--cropped-target-dir",
+    type=Path,
+    default=Path(__file__).resolve().parents[2] / "data" / "cropped_targets",
+    help="Output directory for cropped design-target PDBs.",
+  )
+  parser.add_argument(
+    "--crop-radius",
+    type=float,
+    default=18.0,
+    help="3D radius in Angstrom around hotspot residues to retain for cropped targets.",
+  )
+  parser.add_argument(
+    "--crop-padding-residues",
+    type=int,
+    default=8,
+    help="Sequence padding to retain on each side of residues selected by hotspot-neighborhood cropping.",
+  )
+  parser.add_argument(
+    "--crop-min-residues",
+    type=int,
+    default=350,
+    help="Only crop antigens whose residue count exceeds this threshold.",
+  )
   args = parser.parse_args()
 
   with args.dataset_csv.open("r", encoding="utf-8", newline="") as f:
-    rows = list(csv.DictReader(f))
+    reader = csv.DictReader(f)
+    rows = list(reader)
+    dataset_fieldnames = list(reader.fieldnames or [])
+
+  for field in ["design_structure_path", "design_structure_source"]:
+    if field not in dataset_fieldnames:
+      dataset_fieldnames.append(field)
 
   args.out_dir.mkdir(parents=True, exist_ok=True)
+  if args.crop_targets:
+    args.cropped_target_dir.mkdir(parents=True, exist_ok=True)
   summary_rows: list[dict[str, str | int | float]] = []
 
   ok = 0
@@ -523,6 +726,12 @@ def main() -> int:
       hotspot_count=0,
       hotspots=[],
       target_pdb_repaired=False,
+      design_structure_path=str(target_path) if target_path is not None else "",
+      design_structure_source="reference_structure_path",
+      design_structure_note="crop_pending",
+      target_cropped=False,
+      target_residue_count=0,
+      design_residue_count=0,
     )
 
     if not ref_path.exists():
@@ -535,7 +744,7 @@ def main() -> int:
         model = next(iter(structure))
         available = _list_available_chains(model)
         chain_info = _load_chain_info(ref_path)
-        requested_binder_kind = _infer_requested_binder_kind(row, ab_chain_req, chain_info)
+        requested_binder_kind = _infer_requested_binder_kind(ab_chain_req, chain_info)
         target_sequence = _load_target_sequence(target_path, antigen_chains[0]) if target_path is not None and len(antigen_chains) == 1 else ""
 
         if all(chain_id in available for chain_id in antigen_chains):
@@ -592,10 +801,31 @@ def main() -> int:
             result.antibody_chain_used = ab_chain_used
             result.hotspots = hotspots
             result.hotspot_count = len(hotspots)
+            (
+              result.design_structure_path,
+              result.design_structure_source,
+              result.design_structure_note,
+              result.target_cropped,
+              result.target_residue_count,
+              result.design_residue_count,
+            ) = _prepare_design_structure(
+              sample_id=sample_id,
+              target_path=target_path,
+              antigen_chains=antigen_chains,
+              hotspot_tokens=hotspots,
+              crop_targets=args.crop_targets,
+              cropped_target_dir=args.cropped_target_dir,
+              crop_radius=args.crop_radius,
+              crop_padding_residues=args.crop_padding_residues,
+              crop_min_residues=args.crop_min_residues,
+            )
       except StopIteration:
         result.note = "empty_or_invalid_structure"
       except Exception as e:
         result.note = f"parse_failed:{type(e).__name__}"
+
+    row["design_structure_path"] = result.design_structure_path or (str(target_path) if target_path is not None else "")
+    row["design_structure_source"] = result.design_structure_source
 
     out_json = args.out_dir / f"{sample_id}.json"
     payload = {
@@ -603,6 +833,9 @@ def main() -> int:
       "pdb_id": (row.get("pdb_id") or "").strip(),
       "reference_complex_path": str(ref_path),
       "reference_structure_path": str(target_path) if target_path is not None else "",
+      "design_structure_path": result.design_structure_path,
+      "design_structure_source": result.design_structure_source,
+      "design_structure_note": result.design_structure_note,
       "antigen_chain": (row.get("antigen_chain") or "").strip(),
       "antigen_chain_requested": (row.get("antigen_chain") or "").strip(),
       "antigen_chain_used": result.antigen_chain_used,
@@ -615,6 +848,9 @@ def main() -> int:
       "hotspot_residues": result.hotspots,
       "hotspot_string": ",".join(result.hotspots),
       "target_pdb_repaired": result.target_pdb_repaired,
+      "target_cropped": result.target_cropped,
+      "target_residue_count": result.target_residue_count,
+      "design_residue_count": result.design_residue_count,
     }
     out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -631,6 +867,11 @@ def main() -> int:
         "hotspot_count": result.hotspot_count,
         "hotspot_string": ",".join(result.hotspots),
         "target_pdb_repaired": str(result.target_pdb_repaired),
+        "design_structure_source": result.design_structure_source,
+        "design_structure_note": result.design_structure_note,
+        "target_cropped": str(result.target_cropped),
+        "target_residue_count": result.target_residue_count,
+        "design_residue_count": result.design_residue_count,
       }
     )
 
@@ -657,15 +898,24 @@ def main() -> int:
         "hotspot_count",
         "hotspot_string",
         "target_pdb_repaired",
+        "design_structure_source",
+        "design_structure_note",
+        "target_cropped",
+        "target_residue_count",
+        "design_residue_count",
       ],
     )
     writer.writeheader()
     writer.writerows(summary_rows)
 
+  _write_dataset_csv(args.dataset_csv, rows, dataset_fieldnames)
+
   print(f"[OK] epitope files written: {args.out_dir}")
   print(f"[INFO] summary: {summary_csv}")
   print(f"[INFO] total={len(summary_rows)} ok={ok} fail={fail}")
   print(f"[INFO] repaired_target_pdbs={repaired_targets}")
+  if args.crop_targets:
+    print(f"[INFO] cropped_target_dir={args.cropped_target_dir}")
   return 0
 
 

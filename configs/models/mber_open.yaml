@@ -1,0 +1,24 @@
+# ── mBER-open model configuration ────────────────────────────────────────
+name: mber_open
+
+conda_env: mber
+
+runner_script: scripts/native_runners/mber_open.sh
+
+workdir: /home/yqsong/projects/antibody_benchmark/models/mber-open
+
+input_subdir: mber-open
+
+output_subdir: mber_open
+
+n_designs: 0
+
+gpu_count: 1
+
+internal_score_field: mber_score
+internal_score_ascending: false
+
+output_patterns:
+  sequence: ["**/*.fasta", "**/*.fa", "**/*.seq"]
+  structure: ["**/*.pdb", "**/*.cif"]
+  meta: ["**/result.json", "**/output.json"]

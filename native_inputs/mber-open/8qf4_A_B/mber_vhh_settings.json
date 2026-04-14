@@ -1,0 +1,53 @@
+{
+  "output": {
+    "dir": "__OUTPUT_DIR__",
+    "skip_animations": true,
+    "skip_pickle": true,
+    "skip_png": true
+  },
+  "target": {
+    "pdb": "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8qf4.pdb",
+    "name": "8qf4_A_B",
+    "chains": "B",
+    "hotspots": [
+      "B211",
+      "B212",
+      "B213",
+      "B214",
+      "B215",
+      "B216",
+      "B217",
+      "B219",
+      "B220",
+      "B222",
+      "B223",
+      "B224",
+      "B226",
+      "B227",
+      "B228",
+      "B229",
+      "B230",
+      "B231",
+      "B244",
+      "B245",
+      "B246",
+      "B247",
+      "B250",
+      "B251",
+      "B271",
+      "B274",
+      "B275"
+    ]
+  },
+  "binder": {
+    "masked_sequence": "EVQLVESGGGLVQPGGSLRLSCAASG*********WFRQAPGKEREF***********NADSVKGRFTISRDNAKNTLYLQMNSLRAEDTAVYYC************WGQGTLVTVSS"
+  },
+  "stopping": {
+    "num_accepted": 3,
+    "max_trajectories": 50
+  },
+  "filters": {
+    "min_iptm": 0.75,
+    "min_plddt": 0.7
+  }
+}

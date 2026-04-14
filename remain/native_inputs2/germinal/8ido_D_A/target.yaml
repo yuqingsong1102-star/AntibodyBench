@@ -1,0 +1,5 @@
+target_name: "8ido_D_A"
+target_pdb_path: "/home/yqsong/projects/antibody_benchmark/AntibodyBench/data/pdbs/8ido.pdb"
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: "A381,A382,A383,A384,A385,A386,A389,A410,A413,A414,A416,A417,A418,A485,A487,A488,A489,A490,A587"
